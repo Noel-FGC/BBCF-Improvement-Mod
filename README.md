@@ -5,6 +5,13 @@ The goal is to extend the game with community-created content and provide additi
 
 Join the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) to discuss about the development and the game itself!
 
+## PR's and Bug reports
+This repository only exists as a fork of [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases) while their defaults regarding their replay server do not respect user privacy, 
+
+i do not have the skillset to, nor do i plan on maintaining this outside of merging new commits to [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases)
+
+unless you are 100% sure a bug is caused by my removal of the function to upload replays, submit bug reports to [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases)
+
 ## What this mod provides
 - Adds extra game modes
 - Adds hitbox overlay
@@ -27,7 +34,14 @@ Join the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) to disc
 - Freely adjustable ingame currency value
 
 ## Installing
-Download dinput8.dll, settings.ini and optionally palettes.ini from the latest release and put it in your BlazBlue Centralfiction folder. There is no need to compile it yourself for regular usage.
+Download dinput8.dll, settings.ini and optionally palettes.ini from the latest release and put them in your BlazBlue Centralfiction folder.
+
+if on linux add the following ```WINEDLLOVERRIDES="dinput8=n,b"``` to your launch options
+
+## Installing with ASI Loader
+Download dinput8.dll, settings.ini and optionally palettes.ini from the latest release and put them in your BlazBlue Centralfiction folder. 
+Rename dinput.dll to BBCFIM.asi
+Install ASI Loader (i use d3d9.dll)
 
 
 ## Compiling and usage
@@ -47,6 +61,8 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 * NeoStrayCat
 * KDing
 * PC_volt
+* libreofficecalc
+* TheDukeofErl
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
@@ -62,5 +78,5 @@ BBCF Improvement Mod is NOT intended to unlock unreleased / unpurchased contents
 BBCF Improvement Mod should only be used on the official version that you legally purchased and own.
 
 Use BBCF Improvement Mod at your own risk.
-I, Microsoft Excel/libreofficecalc, am not responsible for what happens while using BBCF Improvement Mod. You take full reponsibility for any outcome that happens to you while using this application.
+I, Noel-FGC, am not responsible for what happens while using the BBCF Improvement Mod. You take full reponsibility for anything that happens to you as a result of using this software.
 ```

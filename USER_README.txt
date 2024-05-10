@@ -25,9 +25,27 @@ How to install
 (Should be at "..\Steam\SteamApps\common\BlazBlue Centralfiction")
 3. Adjust the values in settings.ini as desired
 
+users on linux may need to add the following to their steam launch options:
+WINEDLLOVERRIDES="dinput8=n,b" %command%
+
+
+How to install with ASI Loader
+==========================
+this is mainly useful for people who are using Reloaded-II, 
+Reloaded-II has a deploy ASI Loader button you should use for step 4 if you have it
+
+1. Download and extract the latest BBCF_IM.zip
+2. Put dinput8.dll and settings.ini into the game's folder (where BBCF.exe is located)
+3. rename dinput8.dll to BBCFIM.asi, or (any name you wish).asi, the extension is the important part
+4. Install ASI Loader (I use, and recommend using d3d9.dll) https://github.com/ThirteenAG/Ultimate-ASI-Loader
+5. Adjust the values in settings.ini as desired
+
+users on linux may need to add the following to their steam launch options:
+WINEDLLOVERRIDES="d3d9=n,b" %command%
+
 Uninstall
 ==========================
-Delete or rename dinput8.dll. The mod makes no permanent changes to anything.
+Delete or rename dinput8.dll/BBCFIM.asi. The mod makes no permanent changes to anything.
 
 How to use the mod's overlay
 ==========================
