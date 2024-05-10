@@ -100,10 +100,6 @@ struct modValues_t {
 	int save_states_save_keycode;
 	int save_states_load_keycode;
 	int replay_takeover_load_keycode;
-	bool uploadReplayData;
-	std::string uploadReplayDataHost; 
-	std::string uploadReplayDataEndpoint;
-	unsigned short uploadReplayDataPort;
 };
 //temporary placeholders until wrappers are created / final addresses updated
 struct temps_t

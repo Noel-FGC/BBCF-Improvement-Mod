@@ -80,21 +80,3 @@ void StartAsyncUpdateCheck()
 		CloseHandle(CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)CheckUpdate, nullptr, 0, nullptr));
 	}
 }
-
-
-
-
-	// Function to send a POST request with the provided bytes as the body
-
-
-
-
-
-
-void StartAsyncReplayUpload() {
-	if (!Settings::settingsIni.uploadReplayData) {
-		return;
-	}
-		CloseHandle(CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UploadReplayBinary, nullptr, 0, nullptr));
-	
-}

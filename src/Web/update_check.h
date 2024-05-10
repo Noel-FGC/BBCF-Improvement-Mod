@@ -3,4 +3,3 @@
 
 std::string GetNewVersionNum();
 void StartAsyncUpdateCheck();
-void StartAsyncReplayUpload();

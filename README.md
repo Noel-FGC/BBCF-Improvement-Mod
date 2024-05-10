@@ -6,11 +6,28 @@ The goal is to extend the game with community-created content and provide additi
 Join the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) to discuss about the development and the game itself!
 
 ## PR's and Bug reports
-This repository only exists as a fork of [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases) while their defaults regarding their replay server do not respect user privacy, 
+This repository only exists as a fork of [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod) while their replay server does not respect user privacy, 
 
-i do not have the skillset to, nor do i plan on maintaining this outside of merging new commits to [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases)
+i do not have the skillset to, nor do i plan on maintaining this outside of reviwing and merging new commits from [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod)
 
-unless you are 100% sure a bug is caused by my removal of the function to upload replays, submit bug reports to [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/releases)
+unless you are 100% sure a bug is caused by my removal of the function to upload replays, submit bug reports to [libreofficecalc/BBCF-Improvement-Mod](https://github.com/libreofficecalc/BBCF-Improvement-Mod/issues)
+
+## Why?
+libreofficecalc recently added a "feature" that unless explicitly disabled, automatically uploads all replays to a server, while i may not agree with it, something being opt-out instead of opt-in in the end, isnt a big deal
+
+the big deal is that this "feature" is not listed anywhere on the repository (at the time of writing), and even if it was, im willing to bet atleast 60% of the people who download the mod just went straight to releases after their friend told them to. and how many people simply updating to the latest release would actually bother to check what new features are added, and then look into them far enough to realize what its actually doing?
+
+packaging something like this into a long running mod many people use without even a message asking if you want your replays uploaded, or hell, a way of properly opting out or deleting your data from their server, is misleading and in my opinion a violation of trust.
+
+unless you go out of your way to look for this, you would have no idea all of your replays were being uploaded
+
+this combined with the fact it uploads replays regardless of if the opponent has the mod or not, or even if they explicitly turn off the feature makes the improvement mod, in my book, spyware
+
+i have discussed in the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) and it seems noone in control of the situation gives a damn about what i or the many other people i have asked think
+
+yes, i should open an issue before forking the repo, but i dont have the confidence to do that its honestly a miracle i managed to talk about it in the discord, if anyone wants to open an issue for me be my guest.
+
+i will private this repository once libreofficecalc fixes the issues mentioned above until then, here we are.
 
 ## What this mod provides
 - Adds extra game modes
