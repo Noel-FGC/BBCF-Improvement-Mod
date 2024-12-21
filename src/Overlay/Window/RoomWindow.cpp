@@ -34,13 +34,13 @@ void RoomWindow::BeforeDraw()
 
 void RoomWindow::Draw()
 {
-	if (!g_interfaces.pRoomManager->IsRoomFunctional())
-	{
-		ImGui::TextDisabled("YOU ARE NOT IN A ROOM OR ONLINE MATCH!");
-		m_windowTitle = m_origWindowTitle;
-
-		return;
-	}
+//	if (!g_interfaces.pRoomManager->IsRoomFunctional())
+//	{
+//		ImGui::TextDisabled("YOU ARE NOT IN A ROOM OR ONLINE MATCH!");
+//		m_windowTitle = m_origWindowTitle;
+//
+//		return;
+//	}
 
 	std::string roomTypeName = g_interfaces.pRoomManager->GetRoomTypeName();
 	SetWindowTitleRoomType(roomTypeName);
