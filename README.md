@@ -47,6 +47,7 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 * NeoStrayCat
 * KDing
 * PC_volt
+* TheDukeOfErl
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
@@ -62,5 +63,5 @@ BBCF Improvement Mod is NOT intended to unlock unreleased / unpurchased contents
 BBCF Improvement Mod should only be used on the official version that you legally purchased and own.
 
 Use BBCF Improvement Mod at your own risk.
-I, Microsoft Excel/libreofficecalc, am not responsible for what happens while using BBCF Improvement Mod. You take full reponsibility for any outcome that happens to you while using this application.
+I, Noel_FGC, am not responsible for what happens while using BBCF Improvement Mod. You take full reponsibility for any outcome that happens to you while using this application.
 ```
