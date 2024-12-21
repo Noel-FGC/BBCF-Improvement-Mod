@@ -3,7 +3,7 @@ name: Build artifact on push to master or PR
 on:
   push:
     branches:
-      - 'master'
+      - 'online-offline'
   pull_request:
 
 permissions:
