@@ -32,15 +32,10 @@ void RoomWindow::BeforeDraw()
 	ImGui::SetNextWindowSizeConstraints(windowSizeConstraints, ImVec2(1000, 1000));
 }
 
+// i have no idea what im doing
+
 void RoomWindow::Draw()
 {
-//	if (!g_interfaces.pRoomManager->IsRoomFunctional())
-//	{
-//		ImGui::TextDisabled("YOU ARE NOT IN A ROOM OR ONLINE MATCH!");
-//		m_windowTitle = m_origWindowTitle;
-//
-//		return;
-//	}
 
 	std::string roomTypeName = g_interfaces.pRoomManager->GetRoomTypeName();
 	SetWindowTitleRoomType(roomTypeName);
@@ -61,6 +56,25 @@ void RoomWindow::Draw()
 		ActiveGameModeWidget();
 	}
 
+
+
+	if (isInMatch())
+	{
+		ImGui::VerticalSpacing(10);
+		WindowManager::GetInstance().GetWindowContainer()->
+			GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowAllPaletteSelections("Room");
+	}
+
+
+	if (!g_interfaces.pRoomManager->IsRoomFunctional())
+	{
+		//ImGui::TextDisabled("YOU ARE NOT IN A ROOM OR ONLINE MATCH!");
+	m_windowTitle = m_origWindowTitle;
+
+		return;
+	}
+
+
 	if (isGameModeSelectorEnabledInCurrentState())
 	{
 		bool isThisPlayerSpectator = g_interfaces.pRoomManager->IsRoomFunctional() && g_interfaces.pRoomManager->IsThisPlayerSpectator();
@@ -71,12 +85,6 @@ void RoomWindow::Draw()
 		}
 	}
 
-	if (isInMatch())
-	{
-		ImGui::VerticalSpacing(10);
-		WindowManager::GetInstance().GetWindowContainer()->
-			GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowAllPaletteSelections("Room");
-	}
 
 	if (isInMenu())
 	{
