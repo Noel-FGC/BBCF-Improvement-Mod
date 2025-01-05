@@ -4,6 +4,7 @@
 #include "Game/gamestates.h"
 #include "Game/Jonb/JonbReader.h"
 #include "imgui_internal.h"
+#include "Core/utils.h"
 
 void HitboxOverlay::Update()
 {
@@ -16,7 +17,6 @@ void HitboxOverlay::Update()
 	{
 		return;
 	}
-
 	BeforeDraw();
 
 	ImGui::Begin("##HitboxOverlay", nullptr, m_overlayWindowFlags);
@@ -36,7 +36,9 @@ void HitboxOverlay::BeforeDraw()
 
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 
-	ImGuiIO& io = ImGui::GetIO();
+	this->io = ImGui::GetIO();
+	displayRatio = io.DisplaySize.x / io.DisplaySize.y;
+	aspectRatioAddress = GetBbcfBaseAdress() + 0x65A5E4;
 	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y));
 }
 
@@ -129,6 +131,24 @@ ImVec2 HitboxOverlay::RotatePoint(ImVec2 center, float angleInRad, ImVec2 point)
 	return point;
 }
 
+void HitboxOverlay::fixAspectRatio(ImVec2& point)
+{	
+	if (*this->aspectRatioAddress == 1) {
+		if (displayRatio > aspectRatio) {
+			float scaling = (io.DisplaySize.x / (io.DisplaySize.y * aspectRatio));
+			float offset = (io.DisplaySize.x - io.DisplaySize.y * aspectRatio) / 2;
+
+			point.x = point.x / scaling + offset;
+		}
+		else if (displayRatio < aspectRatio) {
+			float scaling = (io.DisplaySize.y / (io.DisplaySize.x / aspectRatio));
+			float offset = (io.DisplaySize.y - io.DisplaySize.x / aspectRatio) / 2;
+
+			point.y = point.y / scaling + offset;
+		}
+	}
+}
+
 void HitboxOverlay::DrawOriginLine(ImVec2 worldPos, float rotationRad)
 {
 	const unsigned int colorOrange = 0xFFFF9900;
@@ -139,12 +159,16 @@ void HitboxOverlay::DrawOriginLine(ImVec2 worldPos, float rotationRad)
 	ImVec2 horizontalTo = RotatePoint(worldPos, rotationRad, ImVec2(worldPos.x + horizontalLength / 2, worldPos.y));
 	horizontalFrom = CalculateScreenPosition(horizontalFrom);
 	horizontalTo = CalculateScreenPosition(horizontalTo);
+	fixAspectRatio(horizontalFrom);
+	fixAspectRatio(horizontalTo);
 	RenderLine(horizontalFrom, horizontalTo, colorOrange, 3);
 
 	ImVec2 verticalFrom = worldPos;
 	ImVec2 verticalTo = RotatePoint(verticalFrom, rotationRad, ImVec2(verticalFrom.x, verticalFrom.y + verticalLength));
 	verticalFrom = CalculateScreenPosition(verticalFrom);
 	verticalTo = CalculateScreenPosition(verticalTo);
+	fixAspectRatio(verticalFrom);
+	fixAspectRatio(verticalTo);
 	RenderLine(verticalFrom, verticalTo, colorOrange, 3);
 }
 
@@ -162,7 +186,7 @@ void HitboxOverlay::DrawCollisionAreas(const CharData* charObj, const ImVec2 pla
 {
 			continue;
 		}
-		
+
 		float scaleX = charObj->scaleX / 1000.0f;
 		float scaleY = charObj->scaleY / 1000.0f;
 		float offsetX =  floor(entry.offsetX * m_scale * scaleX);
@@ -198,6 +222,12 @@ void HitboxOverlay::DrawCollisionAreas(const CharData* charObj, const ImVec2 pla
 		pointB = CalculateScreenPosition(pointB);
 		pointC = CalculateScreenPosition(pointC);
 		pointD = CalculateScreenPosition(pointD);
+
+		//Fixes aspect ratio when the game is in fullscreen/borderless
+		fixAspectRatio(pointA);
+		fixAspectRatio(pointB);
+		fixAspectRatio(pointC);
+		fixAspectRatio(pointD);
 
 		const unsigned int colorBlue = 0xFF0033CC;
 		const unsigned int colorRed = 0xFFFF0000;
