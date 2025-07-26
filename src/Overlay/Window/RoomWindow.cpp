@@ -37,6 +37,11 @@ void RoomWindow::Draw()
 	if (!g_interfaces.pRoomManager->IsRoomFunctional())
 	{
 		ImGui::TextDisabled("YOU ARE NOT IN A ROOM OR ONLINE MATCH!");
+		ImGui::NewLine();
+
+		ImGui::Text("Online Input Delay");
+		ImGui::SameLine();
+		ImGui::SliderInt("##Rollback Delay", &g_gameVals.onlineDelay, 1, 5);
 		m_windowTitle = m_origWindowTitle;
 
 		return;
@@ -49,6 +54,20 @@ void RoomWindow::Draw()
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
 
+	if (isInMenu() || isOnCharacterSelectionScreen())
+	{
+		ImGui::NewLine();
+
+		ImGui::Text("Online Input Delay");
+		ImGui::SameLine();
+		ImGui::SliderInt("##Rollback Delay", &g_gameVals.onlineDelay, 1, 5);
+	}
+
+	if (isInMatch())
+	{
+		ImGui::NewLine();
+		ImGui::Text("Online Input Delay: %d", g_gameVals.onlineDelay);
+	}
 
 	if (isStageSelectorEnabledInCurrentState())
 	{
