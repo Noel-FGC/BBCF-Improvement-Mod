@@ -27,7 +27,7 @@ jobs:
         run: copy ${{ github.workspace }}\USER_README.txt ${{ github.workspace }}\bin\Release\
 
       - name: Upload BBCF_IM
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: BBCF_IM
           path: |
