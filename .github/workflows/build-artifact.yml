@@ -18,6 +18,21 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
+        
+        # Thank you Avasam https://github.com/actions/runner-images/issues/9873
+      - name: Install missing Visual Studio components
+        run: |
+          Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+          $VsInstallPath = vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          [string]$ComponentsToAdd = @(
+            "Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL" # for windows-2022
+          ) | ForEach-Object {"--add $_"}
+          $ArgumentList = ('modify', '--installPath', "`"$VsInstallPath`"", $ComponentsToAdd, '--quiet', '--norestart', '--nocache')
+          echo "vs_installer.exe $($ArgumentList -join ' ')"
+          # should be run twice for some reason
+          Start-Process -FilePath vs_installer.exe -ArgumentList $ArgumentList -Wait -PassThru -WindowStyle Hidden
+          Start-Process -FilePath vs_installer.exe -ArgumentList $ArgumentList -Wait -PassThru -WindowStyle Hidden
+
 
       - name: Build BBCF_IM
         run: msbuild BBCF_IM.sln -property:Configuration=Release
