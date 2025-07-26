@@ -42,6 +42,19 @@ void RoomWindow::Draw()
 		ImGui::Text("Online Input Delay");
 		ImGui::SameLine();
 		ImGui::SliderInt("##Rollback Delay", &g_gameVals.onlineDelay, 1, 5);
+		
+    if (isInMatch)
+    {
+      ImGui::VerticalSpacing(10);
+      WindowManager::GetInstance().GetWindowContainer()->
+        GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowAllPaletteSelections("Main");
+
+      ImGui::VerticalSpacing(10);
+      ImGui::HorizontalSpacing();
+      WindowManager::GetInstance().GetWindowContainer()->
+        GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowReloadAllPalettesButton();
+    }
+
 		m_windowTitle = m_origWindowTitle;
 
 		return;
