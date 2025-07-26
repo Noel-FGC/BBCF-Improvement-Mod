@@ -3,8 +3,6 @@ Additional features and tweaks for BlazBlue Centralfiction
 
 The goal is to extend the game with community-created content and provide additional graphical options.
 
-Join the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) to discuss about the development and the game itself!
-
 ## What this mod provides
 - Adds extra game modes
 - Adds hitbox overlay
@@ -17,6 +15,7 @@ Join the [BB Improvement Mod Discord Server](https://discord.gg/j2mCX9s) to disc
 - Adds wakeup action thru training dummy slots
 - Adds gap action thru training dummy slots
 - Adds local replay file loading
+- Adds a rollback delay slider 
 - more experimental features
 
 
@@ -31,11 +30,11 @@ Download dinput8.dll, settings.ini and optionally palettes.ini from the latest r
 
 
 ## Compiling and usage
-BBCF Improvement Mod is coded using Visual Studio 2019 (toolset v142). <br>
+BBCF Improvement Mod is compiled using Visual Studio 2019 (toolset v142). <br>
 To compile, you should only need to load the sln file and compile as-is. No changes should be needed to the solution or source.<br>
 Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ folder into the game's root folder.
 
-## Requirements
+## Compilation Requirements
 - Visual Studio 2019 (toolset v142) (Windows SDK 10)
 
 ## Thanks to the people who have helped the mod along the way
@@ -49,6 +48,7 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 * PC_volt
 * MorphRed
 * Tadatys(sublimacija)
+* TheDukeOfErl
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
@@ -64,5 +64,5 @@ BBCF Improvement Mod is NOT intended to unlock unreleased / unpurchased contents
 BBCF Improvement Mod should only be used on the official version that you legally purchased and own.
 
 Use BBCF Improvement Mod at your own risk.
-I, Microsoft Excel/libreofficecalc, am not responsible for what happens while using BBCF Improvement Mod. You take full reponsibility for any outcome that happens to you while using this application.
+I, Noel_FGC, am not responsible for what happens while using BBCF Improvement Mod. You take full reponsibility for any outcome that happens to you while using this application.
 ```
