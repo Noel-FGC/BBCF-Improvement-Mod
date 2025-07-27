@@ -66,7 +66,16 @@ bool WindowManager::Initialize(void *hwnd, IDirect3DDevice9 *device)
 
 	m_windowContainer = new WindowContainer();
 
-	ImGui::StyleColorsDark();
+  ImGui::StyleColorsDark();
+  if (Settings::settingsIni.theme == "Classic")
+  {
+    ImGui::StyleColorsClassic();
+  }
+  else if (Settings::settingsIni.theme == "Light")
+  {
+    ImGui::StyleColorsLight();
+  }
+
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowBorderSize = 1;
 	style.FrameBorderSize = 1;
