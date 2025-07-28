@@ -977,6 +977,13 @@ void PaletteEditorWindow::ShowGradientPopup()
 	{
 		ImGui::TextUnformatted("Gradient generator");
 
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x * 0.77f);
+		ImGui::TextDisabled("(?)");
+		if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("CTRL+click to manually input value.");
+    }
+
 		static int idx1 = 1;
 		static int idx2 = 2;
 		int minVal_idx2 = idx1 + 1;
@@ -986,8 +993,9 @@ void PaletteEditorWindow::ShowGradientPopup()
 			idx2 = minVal_idx2;
 		}
 
-		ImGui::SliderInt("Start index", &idx1, 1, NUMBER_OF_COLOR_BOXES - 1);
-		ImGui::SliderInt("End index", &idx2, minVal_idx2, NUMBER_OF_COLOR_BOXES);
+    ImGui::SliderInt("Start index", &idx1, 1, NUMBER_OF_COLOR_BOXES - 1);
+    
+    ImGui::SliderInt("End index", &idx2, minVal_idx2, NUMBER_OF_COLOR_BOXES);
 
 		static int color1 = 0xFFFFFFFF;
 		static int color2 = 0xFFFFFFFF;
@@ -1006,6 +1014,10 @@ void PaletteEditorWindow::ShowGradientPopup()
 		if (ImGui::Button("Generate gradient"))
 		{
 			DisableHighlightModes();
+      if (idx1 > NUMBER_OF_COLOR_BOXES - 1)
+        idx1 = NUMBER_OF_COLOR_BOXES - 1;
+      if (idx2 > NUMBER_OF_COLOR_BOXES)
+        idx2 = NUMBER_OF_COLOR_BOXES;
 			GenerateGradient(idx1, idx2, color1, color2);
 		}
 
