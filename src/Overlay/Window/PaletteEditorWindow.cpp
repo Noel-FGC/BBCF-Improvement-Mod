@@ -977,13 +977,6 @@ void PaletteEditorWindow::ShowGradientPopup()
 	{
 		ImGui::TextUnformatted("Gradient generator");
 
-    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x * 0.77f);
-		ImGui::TextDisabled("(?)");
-		if (ImGui::IsItemHovered())
-    {
-      ImGui::SetTooltip("CTRL+click to manually input value.");
-    }
-
 		static int idx1 = 1;
 		static int idx2 = 2;
 		int minVal_idx2 = idx1 + 1;
@@ -994,6 +987,9 @@ void PaletteEditorWindow::ShowGradientPopup()
 		}
 
     ImGui::SliderInt("Start index", &idx1, 1, NUMBER_OF_COLOR_BOXES - 1);
+
+    ImGui::SameLine();
+    ImGui::ShowHelpMarker("CTRL+click to manually input value.");
     
     ImGui::SliderInt("End index", &idx2, minVal_idx2, NUMBER_OF_COLOR_BOXES);
 
