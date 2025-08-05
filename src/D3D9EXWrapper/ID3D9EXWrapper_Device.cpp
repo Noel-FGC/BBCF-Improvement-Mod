@@ -6,6 +6,7 @@
 #include "Hooks/hooks_bbcf.h"
 #include "Hooks/hooks_customGameModes.h"
 #include "Hooks/hooks_palette.h"
+#include "Hooks/Patches.h"
 #include "Overlay/WindowManager.h"
 
 #include <steam_api.h>
@@ -26,6 +27,8 @@ Direct3DDevice9ExWrapper::Direct3DDevice9ExWrapper(IDirect3DDevice9Ex **ppReturn
 	placeHooks_bbcf();
 	placeHooks_palette();
 	placeHooks_CustomGameModes();
+  PatchManager::ApplyPatches();
+  
 }
 
 Direct3DDevice9ExWrapper::~Direct3DDevice9ExWrapper() {}
