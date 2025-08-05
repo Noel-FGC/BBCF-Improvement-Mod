@@ -412,6 +412,36 @@ bool HookManager::PlaceHook(void* toHook, void* ourFunc, int len)
 	return true;
 }
 
+int HookManager::OverWriteBytesAtRVA(const DWORD rva, const char* newBytes, const int byteLen)
+{
+	////////
+	//Get all module related information
+	//Get process name
+  
+	TCHAR szFileName[MAX_PATH + 1];
+	GetModuleFileName(NULL, szFileName, MAX_PATH + 1);
+
+	MODULEINFO modinfo = { 0 };
+	HMODULE hModule = GetModuleHandle(szFileName);
+	if (hModule == 0)
+		return 0;
+	GetModuleInformation(GetCurrentProcess(), hModule, &modinfo, sizeof(MODULEINFO));
+
+  DWORD addr = (DWORD)modinfo.lpBaseOfDll + rva;
+  DWORD byteLength = (DWORD)byteLen;
+
+  DWORD curProtection;
+  if (!VirtualProtect((void*)addr, byteLength, PAGE_EXECUTE_READWRITE, &curProtection))
+    return 0;
+
+  memcpy((void*)addr, newBytes, byteLength);
+
+  DWORD temp;
+  if (!VirtualProtect((void*)addr, byteLength, curProtection, &temp))
+    return 0;
+  
+}
+
 int HookManager::OverWriteBytes(void* startAddress, void* endAddress, const char* pattern,
 	const char* mask, const char* newBytes)
 {

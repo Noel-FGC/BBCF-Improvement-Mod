@@ -37,6 +37,7 @@ public:
 	static JMPBACKADDR RegisterHook(const char* label, const char* pattern, const char* mask, const int len);
 	static int GetOriginalBytes(const char* label, int startIndex, int bytesToReturn);
 	static int GetBytesFromAddr(const char* label, int startIndex, int bytesToReturn);
+  static int OverWriteBytesAtRVA(const DWORD rva, const char* newBytes, const int byteLength);
 	static int OverWriteBytes(void* startAddress, void* endAddress, const char* pattern, const char* mask, const char* newBytes);
 	static void Cleanup(); //empty atm
 private:
