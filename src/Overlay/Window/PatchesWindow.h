@@ -3,14 +3,6 @@
 #include "Windows.h"
 #include "Overlay/WindowContainer/WindowContainer.h"
 
-struct Patch
-{
-  const char* name;
-  const char* tooltip;
-  bool enabled;
-  void (*enable)();
-  void (*disable)();
-};
 
 class PatchesWindow : public IWindow
 {
@@ -20,6 +12,4 @@ class PatchesWindow : public IWindow
     ~PatchesWindow() override = default;
   protected:
     void Draw() override;
-  private:
-    void ApplyPatches();
 };
