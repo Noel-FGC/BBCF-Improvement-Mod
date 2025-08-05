@@ -107,6 +107,10 @@ void MainWindow::DrawUtilButtons() const
 	{
 		m_pWindowContainer->GetWindow(WindowType_Scr)->ToggleOpen();
 	}
+  if (ImGui::Button("Patches", BTN_SIZE))
+  {
+    m_pWindowContainer->GetWindow(WindowType_PatchesWindow)->ToggleOpen();
+  }
 }
 
 void MainWindow::DrawCurrentPlayersCount() const
