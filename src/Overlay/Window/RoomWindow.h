@@ -24,5 +24,7 @@ private:
 	void DrawRoomImPlayers();
 	void DrawMatchImPlayers();
 
+  void DrawRematchSetting();
+
 	const std::string m_origWindowTitle;
 };

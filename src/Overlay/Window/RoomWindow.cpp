@@ -55,6 +55,8 @@ void RoomWindow::Draw()
         GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowReloadAllPalettesButton();
     }
 
+
+
 		m_windowTitle = m_origWindowTitle;
 
 		return;
@@ -110,6 +112,8 @@ void RoomWindow::Draw()
 		WindowManager::GetInstance().GetWindowContainer()->
 			GetWindow<PaletteEditorWindow>(WindowType_PaletteEditor)->ShowAllPaletteSelections("Room");
 	}
+
+  DrawRematchSetting();
 
 	if (isInMenu())
 	{
@@ -189,4 +193,78 @@ void RoomWindow::DrawMatchImPlayers()
 
 	ImGui::EndChild();
 	ImGui::EndGroup();
+}
+
+void RoomWindow::DrawRematchSetting()
+{
+    const char* items[] = { "No Rematch", "No limit", "FT2", "FT3", "FT5", "FT10"};
+    static int currentItem = 0;
+
+    if (!g_gameVals.pRoom || g_gameVals.pRoom->roomStatus == RoomStatus_Unavailable 
+        || !(RoomManager::GetRoomSettingsStaticBaseAdress()))
+    {
+        ImGui::TextUnformatted("Room is not available!");
+        return;
+    }
+    //sets the selected value in the dropdown the actual value
+    switch (g_gameVals.pRoom->rematch) {
+    case RoomRematch::RematchType_Disabled:
+        currentItem = 0;
+        break;
+    case RoomRematch::RematchType_Unlimited:
+        currentItem = 1;
+        break;
+    case RoomRematch::RematchType_Ft2:
+        currentItem = 2;
+        break;
+    case RoomRematch::RematchType_Ft3:
+        currentItem = 3;
+        break;
+    case RoomRematch::RematchType_Ft5:
+        currentItem = 4;
+        break;
+    case RoomRematch::RematchType_Ft10:
+        currentItem = 5;
+        break;
+    default:
+        break;
+    }
+
+    ImGui::Text("Rematch Settings");
+    ImGui::SameLine();
+    if (ImGui::Combo("##dropdown", &currentItem, items, IM_ARRAYSIZE(items)))
+    {
+        switch (currentItem) {
+        case 0:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(0);
+            break;
+
+        case 1:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(-1);
+            break;
+
+        case 2:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(2);
+            break;
+
+        case 3:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(3);
+            break;
+
+        case 4:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(5);
+            break;
+
+        case 5:
+            g_interfaces.pRoomManager->ChangeRematchAmnt(10);
+            break;
+
+
+
+        default:
+            break;
+        }
+
+    };
+
 }
