@@ -49,6 +49,7 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 * MorphRed
 * Tadatys(sublimacija)
 * TheDukeOfErl
+* libreofficecalc
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
