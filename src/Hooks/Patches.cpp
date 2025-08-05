@@ -15,7 +15,7 @@ void RemoveODFilter()
 void RestoreODFilter()
 {
   DWORD Address = (DWORD)0x1d88c1;
-  char* originalBytes = "\x71";
+  char* originalBytes = "\x74";
   int byteLength = 1;
   HookManager::OverWriteBytesAtRVA(Address, originalBytes, byteLength);
 }
@@ -41,7 +41,7 @@ void DisableAlwaysDoODFilter()
 
 static std::vector<Patch> patches = {
   { "Disable OD Distortion BG Filter",
-    "Disables The Red Filter That Displays Over The Distortion Drive Stage Background While In Overdrive", &Settings::settingsIni.DisableODDDBGPatch,
+    "Disables The Red Filter That Displays Over The Distortion Drive Stage Background While In Overdrive, Mainly Used With A Replaced Distortion Stage", &Settings::settingsIni.DisableODDDBGPatch,
     RemoveODFilter, RestoreODFilter, "DisableODDDBGPatch" },
   { "Always Do OD Distortion BG Filter",
     "Always Display The Red Filter That Displays Over The Distortion Drive Stage Background, Even When Not In Overdrive", &Settings::settingsIni.AlwaysODDDBGPatch,
