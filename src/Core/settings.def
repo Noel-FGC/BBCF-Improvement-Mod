@@ -29,4 +29,5 @@ SETTING(int, delaySlider, "DelaySlider", "2");
 SETTING(bool, DisableODDDBGPatch, "DisableODDDBGPatch", "0");
 SETTING(bool, AlwaysODDDBGPatch, "AlwaysODDDBGPatch", "0");
 SETTING(bool, DisableODFilterPatch, "DisableODFilterPatch", "0");
+SETTING(bool, DisableDDStagePatch, "DisableDDStagePatch", "0");
 // SETTING(std::string, replayDatabaseFrontendUrl "ReplayDatabaseFrontendUrl", "http://50.118.225.175:2000/");

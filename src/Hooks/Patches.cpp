@@ -57,6 +57,57 @@ void RestoreODStageFilter()
   HookManager::OverWriteBytesAtRVA(Address, originalBytes, byteLength);
 }
 
+void DisableDistortionBG()
+{
+  DWORD Addr1 = (DWORD)0xC9E56;
+  char* patchedBytes1 =  "\x90\x90\x90";
+  int byteLength1 = 3;
+  DWORD Addr2 = (DWORD)0x1CD266;
+  char* patchedBytes2 =  "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90";
+  int byteLength2 = 11;
+  DWORD Addr3 = (DWORD)0x166C27;
+  char* patchedBytes3 =  "\x90\x90\x90\x90\x90\x90\x90";
+  int byteLength3 = 7;
+  DWORD Addr4 = (DWORD)0x166C3B;
+  char* originalBytes4 = "\xC7\x46\x30\x01\x00\x00\x00";
+  char* patchedBytes4 = "\x90\x90\x90\x90\x90\x90\x90";
+  int byteLength4 = 7;
+  DWORD Addr5 = (DWORD)0x15B3F9;
+  char* originalBytes5 = "\x89\xB7\xF0\x2D\x06\x00";
+  char* patchedBytes5 =  "\x90\x90\x90\x90\x90\x90";
+  int byteLength5 = 6;
+
+  HookManager::OverWriteBytesAtRVA(Addr1, patchedBytes1, byteLength1);
+  HookManager::OverWriteBytesAtRVA(Addr2, patchedBytes2, byteLength2);
+  HookManager::OverWriteBytesAtRVA(Addr3, patchedBytes3, byteLength3);
+  HookManager::OverWriteBytesAtRVA(Addr4, patchedBytes4, byteLength4);
+  HookManager::OverWriteBytesAtRVA(Addr5, patchedBytes5, byteLength5);
+}
+
+void RestoreDistortionBG()
+{
+  DWORD Addr1 = (DWORD)0xC9E56;
+  char* originalBytes1 = "\x89\x70\x1C";
+  int byteLength1 = 3;
+  DWORD Addr2 = (DWORD)0x1CD266;
+  char* originalBytes2 = "\xC7\x84\xB0\xD0\xB5\x01\x00\x1E\x00\x00\x00";
+  int byteLength2 = 11;
+  DWORD Addr3 = (DWORD)0x166C27;
+  char* originalBytes3 = "\xC7\x46\x2C\x01\x00\x00\x00";
+  int byteLength3 = 7;
+  DWORD Addr4 = (DWORD)0x166C3B;
+  char* originalBytes4 = "\xC7\x46\x30\x01\x00\x00\x00";
+  int byteLength4 = 7;
+  DWORD Addr5 = (DWORD)0x15B3F9;
+  char* originalBytes5 = "\x89\xB7\xF0\x2D\x06\x00";
+  int byteLength5 = 6;
+
+  HookManager::OverWriteBytesAtRVA(Addr1, originalBytes1, byteLength1);
+  HookManager::OverWriteBytesAtRVA(Addr2, originalBytes2, byteLength2);
+  HookManager::OverWriteBytesAtRVA(Addr3, originalBytes3, byteLength3);
+  HookManager::OverWriteBytesAtRVA(Addr4, originalBytes4, byteLength4);
+  HookManager::OverWriteBytesAtRVA(Addr5, originalBytes5, byteLength5);
+}
 static std::vector<Patch> patches = {
   { "Disable OD Distortion BG Filter",
     "Disables The Red Filter That Displays Over The Distortion Drive Stage Background While In Overdrive, Mainly Used With A Replaced Distortion Stage", &Settings::settingsIni.DisableODDDBGPatch,
@@ -66,7 +117,10 @@ static std::vector<Patch> patches = {
     EnableAlwaysDoODFilter, DisableAlwaysDoODFilter, "AlwaysODDDBGPatch" },
   { "Disable OD Stage Filter",
     "Disable The Brown Filter That Display's Over The Stage During OverDrive", &Settings::settingsIni.DisableODFilterPatch,
-    DisableODStageFilter, RestoreODStageFilter, "DisableODFilterPatch" }
+    DisableODStageFilter, RestoreODStageFilter, "DisableODFilterPatch" },
+  { "Disable DD Stage Background",
+    "Disable the stage change when someone does a distortion drive, mainly used with a green screen stage as its not clean", &Settings::settingsIni.DisableDDStagePatch,
+    DisableDistortionBG, RestoreDistortionBG, "DisableDDStagePatch" }
 };
 
 void PatchManager::ApplyPatches()
