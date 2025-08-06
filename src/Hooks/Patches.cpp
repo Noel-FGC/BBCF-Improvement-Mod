@@ -38,6 +38,24 @@ void DisableAlwaysDoODFilter()
   HookManager::OverWriteBytesAtRVA(Address, originalBytes, byteLength);
 }
 
+void DisableODStageFilter()
+{
+  DWORD Address = (DWORD)0x161C6F;
+  char* patchedBytes = "\x90\x90\x90\x90\x90\x90"; // nop nop nop nop nop nop
+  int byteLength = 6;
+
+  HookManager::OverWriteBytesAtRVA(Address, patchedBytes, byteLength);
+}
+
+void RestoreODStageFilter()
+{
+
+  DWORD Address = (DWORD)0x161C6F;
+  char* originalBytes = "\x89\x81\x50\x01\x00\x00"; // mov [ecx+00000150],eax
+  int byteLength = 6;
+
+  HookManager::OverWriteBytesAtRVA(Address, originalBytes, byteLength);
+}
 
 static std::vector<Patch> patches = {
   { "Disable OD Distortion BG Filter",
@@ -45,7 +63,10 @@ static std::vector<Patch> patches = {
     RemoveODFilter, RestoreODFilter, "DisableODDDBGPatch" },
   { "Always Do OD Distortion BG Filter",
     "Always Display The Red Filter That Displays Over The Distortion Drive Stage Background, Even When Not In Overdrive", &Settings::settingsIni.AlwaysODDDBGPatch,
-    EnableAlwaysDoODFilter, DisableAlwaysDoODFilter, "AlwaysODDDBGPatch" }
+    EnableAlwaysDoODFilter, DisableAlwaysDoODFilter, "AlwaysODDDBGPatch" },
+  { "Disable OD Stage Filter",
+    "Disable The Brown Filter That Display's Over The Stage During OverDrive", &Settings::settingsIni.DisableODFilterPatch,
+    DisableODStageFilter, RestoreODStageFilter, "DisableODFilterPatch" }
 };
 
 void PatchManager::ApplyPatches()
