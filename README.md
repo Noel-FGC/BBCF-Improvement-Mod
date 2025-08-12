@@ -8,15 +8,15 @@ The goal is to extend the game with community-created content and provide additi
 - Adds hitbox overlay
 - Adds replay takeover
 - Adds P2 State Library
-- Adds wakeup action thru state library
-- Adds gap action thru state library
+- Adds wakeup actions through a state library
+- Adds gap actions through a state library
 - Adds training dummy slot introspection
 - Adds training dummy slot saving/loading to/from local files
-- Adds wakeup action thru training dummy slots
-- Adds gap action thru training dummy slots
+- Adds wakeup actions through training dummy slots
+- Adds gap actions through training dummy slots
 - Adds local replay file loading
 - Adds a rollback delay slider 
-- more experimental features
+- More experimental features
 
 
 - Create and load custom palettes and effects without file modifications
@@ -31,7 +31,7 @@ Download dinput8.dll, settings.ini and optionally palettes.ini from the latest r
 
 ## Compiling and usage
 BBCF Improvement Mod is compiled using Visual Studio 2019 (toolset v142). <br>
-To compile, you should only need to load the sln file and compile as-is. No changes should be needed to the solution or source.<br>
+To compile, you should only need to load the .sln file and compile as-is. No changes should be needed to the solution or source.<br>
 Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ folder into the game's root folder.
 
 ## Compilation Requirements
