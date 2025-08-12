@@ -26,16 +26,17 @@ The goal is to extend the game with community-created content and provide additi
 - Freely adjustable ingame currency value
 
 ## Installing
-Download dinput8.dll, settings.ini and optionally palettes.ini from the latest release and put it in your BlazBlue Centralfiction folder. There is no need to compile it yourself for regular usage.
-
+Download dinput8.dll, settings.ini and optionally palettes.ini from the latest release, optionally verify the hash of dinput8.dll with either dinput8.sha256 or dinput8.md5 and put the downloaded files in your BlazBlue Centralfiction folder.
+There is no need to compile it yourself for regular usage.
 
 ## Compiling and usage
-BBCF Improvement Mod is compiled using Visual Studio 2019 (toolset v142). <br>
-To compile, you should only need to load the .sln file and compile as-is. No changes should be needed to the solution or source.<br>
+BBCF Improvement Mod is compiled using Visual Studio 2019 Build Tools (toolset v142). <br>
+To compile, you should only need to load the .sln file and compile as-is with ``msbuild.exe BBCF_IM.sln``. No changes should be needed to the solution or source.<br>
 Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ folder into the game's root folder.
 
 ## Compilation Requirements
-- Visual Studio 2019 (toolset v142) (Windows SDK 10)
+- [Visual Studio 2019 Build Tools (toolset v142)](https://aka.ms/vs/16/release/vs_buildtools.exe)
+- Microsoft's C++ Active Template Library (ATL), this can be installed at the same time as the Build Tools with the "C++ ATL for latest v142 build tools (x86 and x64)" optional component
 
 ## Thanks to the people who have helped the mod along the way
 * GrimFlash
@@ -50,6 +51,7 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 * Tadatys(sublimacija)
 * TheDukeOfErl
 * libreofficecalc
+* crimsonfail
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
