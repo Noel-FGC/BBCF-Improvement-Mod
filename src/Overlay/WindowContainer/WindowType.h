@@ -15,5 +15,6 @@ enum WindowType_
 	WindowType_PlaybackEditor,
 	WindowType_ComboData,
 	WindowType_ReplayDBPopup,
-  WindowType_PatchesWindow
+  WindowType_PatchesWindow,
+	WindowType_FrameHistory
 };

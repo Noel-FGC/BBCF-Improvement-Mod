@@ -38,6 +38,28 @@ Copy the compiled binary, settings.ini, and palettes.ini files from the bin/ fol
 - [Visual Studio 2019 Build Tools (toolset v142)](https://aka.ms/vs/16/release/vs_buildtools.exe)
 - Microsoft's C++ Active Template Library (ATL), this can be installed at the same time as the Build Tools with the "C++ ATL for latest v142 build tools (x86 and x64)" optional component
 
+### FrameHistory: 
+frameHistory is a frame meter with two rows for each character. For each non-idle frame, it displays a column of rectangles. 
+- For each player:
+    + The first row displays player state. The colors are as follows 
+        - Hard landing recovery -> blush
+        - Startup -> green
+        - Active -> red
+        - Recovery -> blue
+        - Blockstun -> yellow
+        - Hitstun -> purple
+        - Special (not so easy to classify states: e.g. dashes) -> Aquamarine
+        - Unclassified but unable to act -> Byzantium
+        - Unclassified otherwise -> Burgundy
+    + Second row is for attribute invulnerability. The colors and shapes are mixed and overlayed respectively.
+        - Head -> red   rectangle
+        - Body -> green rectangle
+        - Foot -> blue  rectangle
+        - Projectile -> green disk
+        - Throw ->      red   disk
+
+
+
 ## Thanks to the people who have helped the mod along the way
 * GrimFlash
 * KoviDomi

@@ -13,6 +13,7 @@
 #include "Overlay/Window/ComboDataWindow.h"
 #include "Overlay/Window/ReplayDBPopupWindow.h" 
 #include "Overlay/Window/PatchesWindow.h" 
+#include "Overlay/Window/FrameHistory/FrameHistoryWindow.h"
 
 #include "Core/info.h"
 #include "Core/logger.h"
@@ -63,4 +64,7 @@ WindowContainer::WindowContainer()
   
   AddWindow(WindowType_PatchesWindow,
     new PatchesWindow("Patches", true));
+
+	AddWindow(WindowType_FrameHistory,
+		new FrameHistoryWindow("Frame History", true));
 }
