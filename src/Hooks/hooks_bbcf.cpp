@@ -726,6 +726,18 @@ void __declspec(naked)BeforeWriteReplayListDat()
 	LOG_ASM(2, "BeforeWriteReplayListDat\n");
 }
 
+void __declspec(naked)SkipReplayListConfirm()
+{
+	LOG_ASM(2, "SkipReplayListConfirm\n");
+
+	static char* continue_load;
+	continue_load = GetBbcfBaseAdress() + 0x002c2bcf;
+	_asm {
+		mov eax, 1
+		jmp[continue_load]
+	}
+}
+
 bool placeHooks_bbcf()
 {
 	LOG(2, "placeHooks_bbcf\n");
@@ -826,6 +838,8 @@ bool placeHooks_bbcf()
 	//DirectHookTestJmpBackAddr = HookManager::SetHook("DirectHookTest",(DWORD)(GetBbcfBaseAdress() + 0x37c3b3) , 6, DirectHookTest);
 
 	BeforeWriteReplayListDatJmpBackAddr = HookManager::SetHook("BeforeWriteReplayListDat", (DWORD)(GetBbcfBaseAdress() + 0x2C2AF8), 5, BeforeWriteReplayListDat);
+
+	HookManager::SetHook("SkipReplayListConfirm", (DWORD)(GetBbcfBaseAdress() + 0x002c3038), 5, SkipReplayListConfirm);
 
 	return true;
 }
