@@ -1575,6 +1575,11 @@ void ScrWindow::DrawReplayTheaterSection() {
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Archiving will copy and rename all current replays to Save/Replay/archive/ .");
 
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Auto archive saved replays", &Settings::settingsIni.autoArchive)) {
+            Settings::changeSetting("autoArchive", std::to_string((int)Settings::settingsIni.autoArchive));
+        }
+
 
 
 

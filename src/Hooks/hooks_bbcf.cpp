@@ -680,6 +680,8 @@ void __declspec(naked)UploadReplayToEndpoint()
 		//static char* format_string = "\n GameMode: %d, GameScene: %d, GameSceneStatus: %d \n Improvement Mod loaded \n Version: "  MOD_VERSION_NUM;
 		StartAsyncReplayUpload();
 
+		if (Settings::settingsIni.autoArchive)
+			g_rep_manager.archive_replay((ReplayFile*)(GetBbcfBaseAdress() + 0x11B0348)); // archive directly from replay_buffer
 
 	_asm
 	{
