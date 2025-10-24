@@ -1516,6 +1516,8 @@ void PlayLoadedReplay() {
     }
 }
 
+#include <wininet.h> // only for InternetCanonicalizeUrlA
+
 void ScrWindow::DrawReplayTheaterSection() {
     /*std::filesystem::path targetParent = "./Save/Replay/locals";
     std::filesystem::create_directories(targetParent);*/
@@ -1722,6 +1724,49 @@ void ScrWindow::DrawReplayTheaterSection() {
                     }
                 }
             }
+
+
+            ImGui::Separator();
+
+            // load external replay file
+
+            //static char filename[256] = "https://bbreplay.ovh/download?filename=082009246cfd79b5a64208ba2.dat";
+            static char filename[256] = "./Save/Replay/replay00.dat";
+
+            ImGui::InputText("##replay_filename", filename, 256);
+            ImGui::SameLine();
+
+            if (ImGui::Button("Load")) {
+
+                if (strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0) // load url
+                    g_rep_manager.download_replay(filename, NULL);
+
+                else // load file
+                    g_rep_manager.load_replay(filename, NULL);
+
+                // TODO: check that replay in buffer is valid, show message otherwise
+                g_rep_manager.unpack_replay_buffer();
+            }
+
+            // load take filename from steam url, e.g. steam://run/586140/?load-replay=https%3A%2F%2Fbbreplay.ovh%2Fdownload%3Ffilename%3D082009246cfd79b5a64208ba2.dat
+            ISteamApps* apps = *(ISteamApps**)((char*)base + 0x005d3230); // base->static_SteamInterfaces.apps
+            const char* param = apps->GetLaunchQueryParam("load-replay");
+            //ImGui::Text("steam test param %p %s", param, param);
+
+            bool param_changed = false;
+            static char last_param[256] = "";
+            if (strcmp(param, last_param) != 0) {
+                strncpy(last_param, param, sizeof(last_param) - 1);
+                param_changed = true;
+            }
+            if (param_changed) {
+                DWORD n = 256;
+                InternetCanonicalizeUrlA(param, filename, &n, ICU_DECODE);
+                // g_rep_manager.download_replay(filename, NULL);
+                // g_rep_manager.unpack_replay_buffer();
+                // PlayLoadedReplay();
+            }
+
 
 
             ImGui::Separator();
