@@ -24,6 +24,7 @@ public:
 	char* current_sprite_img; //0x00D8
 	char pad_00DC[120]; //0x00DC
 	char unknown_status2; //0x0154  compared if 2 or not? I think 2 might mean its an entity that is anchored to the character that spawned it 
+	char pad_0155[3]; ///0x0155
 	char pad_0158[8]; ///0x0158
 
 
@@ -77,7 +78,9 @@ public:
 	//char pad_0250[20]; // 0x0250
 	char pad_0250[0xC];// 0x0250
 	//0x0254 significant?
-	uint32_t bitflags_for_curr_state_properties_or_smth; // 0x025c holds some properties of attacks it seems in something like bitfields. To check for inactive hitboxes from multihits use the mask xxxxx400.
+	uint32_t bitflags_for_curr_state_properties_or_smth; /* 0x025c holds some properties of attacks it seems in something like bitfields.
+														 To check for inactive hitboxes from multihits use the mask xxxxx400.
+														 To check for inactive hitboxes from non-multihits use the mask xxxxx200.*/
 	char pad_0260[4];//0x0260
 	//exp 
 	int32_t facingLeft; //0x0264 is it not facing right?
@@ -138,8 +141,22 @@ public:
 	int32_t moveP2Overwrite; //0x06A8
 	char pad_06AC[40]; //0x06AC
 	int32_t moveCounterHitAirPushbackY; //0x06D4
-	char pad_06D8[760]; //0x06D8
+	char pad_06D8[704]; //0x06D8
 
+	int32_t invuln_bitfield; // 0x0998
+	/*  Invuln flags for each attribute, pseudocode listing them:
+    if (invul_field & 0x08)        invul = invul | Attribute::H;
+    if (invul_field & 0x10)        invul = invul | Attribute::B;
+    if (invul_field & 0x20)        invul = invul | Attribute::F;
+    if (invul_field & 0x80000)     invul = invul | Attribute::P;
+    if (invul_field & 0x40)        invul = invul | Attribute::T;
+	if (invul_field & 0x200)       invul = invul | Attribute::O; BURST
+
+	
+	*/
+	int32_t guard_point_bitfield; // 0x099C  
+	/*If the first bit is set it means to use guardpoint instead of invuln */
+	char pad_09A0[48]; //0x09A0
 	int32_t previousHP; //0x09D0
 	int32_t currentHP; //0x09D4
 	int32_t maxHP; //0x09D8

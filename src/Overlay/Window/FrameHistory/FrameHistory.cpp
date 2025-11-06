@@ -114,29 +114,39 @@ int first_det_active(std::vector<FrameActivity>& activity_status) {
 }
 
 
-Attribute parse_dyn_invul(uint32 invul_field) {
+Attribute parse_dyn_invul(uint32 invul_field, uint32 gp_bitfield) {
     if ((invul_field & 0x02) == 0) {
         return Attribute::N;
     }
 
     Attribute invul = Attribute::N;
-    
-    invul = invul | Attribute::H & (~static_cast<uint32>(((invul_field & 0x08) != 0) - 1));
-    invul = invul | Attribute::B & (~static_cast<uint32>(((invul_field & 0x10) != 0) - 1));
-    invul = invul | Attribute::F & (~static_cast<uint32>(((invul_field & 0x20) != 0) - 1));
-    invul = invul | Attribute::P & (~static_cast<uint32>(((invul_field & 0x80000) != 0) - 1));
-    invul = invul | Attribute::T & (~static_cast<uint32>(((invul_field & 0x40) != 0)-1));
+
+    if (gp_bitfield & 0x01)     invul = invul | Attribute::GP;
+    if (invul_field & 0x08)     invul = invul | Attribute::H;
+    if (invul_field & 0x10)     invul = invul | Attribute::B;
+    if (invul_field & 0x20)     invul = invul | Attribute::F;
+    if (invul_field & 0x80000)  invul = invul | Attribute::P;
+    if (invul_field & 0x40)     invul = invul | Attribute::T;
+
+
 
     return invul;
 }
 
 PlayerFrameState::PlayerFrameState(scrState* state, unsigned int frame,
     CharData* player, BackedUpCharData old_data) {
-    // TODO: Make this more robust.
 
+    // set state variables
+    invul = parse_dyn_invul(player->invuln_bitfield, player->guard_point_bitfield);
+    is_new = frame == 0;
+    
+    
+    // Set kind
     std::string currentAction = std::string(player->currentAction);
     int fst_det_active;
     Attribute det_invul = Attribute::N;
+    bool is_idle_state = std::find(std::begin(idleWords), std::end(idleWords), currentAction) != std::end(idleWords);
+    
     if (state == nullptr) {
         fst_det_active = -1;
     }
@@ -144,20 +154,18 @@ PlayerFrameState::PlayerFrameState(scrState* state, unsigned int frame,
         fst_det_active = first_det_active(state->frame_activity_status);
     }
     
-    invul = parse_dyn_invul(*((uint32*) (((char*) player) + 0x998)));
 
-    is_new = frame == 0;
-    // BUG: Check if dereferencing player causes a crash here (mirror matches)
     if (is_new && currentAction == "CmnActUkemiLandNLanding") {
         kind = FrameKind::Recovery;
     }
-    else if (std::find(std::begin(idleWords), std::end(idleWords), currentAction) != std::end(idleWords)) {
+    else if (is_idle_state) {
         kind = FrameKind::Idle;
     }
     else {
         kind = FrameKind::Special;
     }
-    if (player->hitboxCount > 0) {
+    if (player->hitboxCount > 0
+        && (player->bitflags_for_curr_state_properties_or_smth & (0x400 | 0x200)) == 0) {
         kind = FrameKind::Active | kind;
     }
     if (player->blockstun > 0) {
@@ -172,7 +180,10 @@ PlayerFrameState::PlayerFrameState(scrState* state, unsigned int frame,
         kind = FrameKind::HardLanding | kind;
     }
     // NOTE: Startup is only defined in a context with deterministic active frames
-    if (fst_det_active > -1 && player->hitboxCount <= 0) {
+    if (fst_det_active > -1
+        && (player->hitboxCount <= 0 || (player->bitflags_for_curr_state_properties_or_smth & (0x400 | 0x200)) == 0)
+        && !is_idle_state) {
+        
         if (frame < fst_det_active) {
             kind = FrameKind::Startup | kind;
         }
@@ -329,7 +340,12 @@ void FrameHistory::loadCharData() {
     char* bbcf_base_adress = GetBbcfBaseAdress();
 
     std::vector<scrState*> states_p1 = parse_scr(bbcf_base_adress, 1);
-    std::vector<scrState*> states_p2 = parse_scr(bbcf_base_adress, 2);
+    std::vector<scrState*> states_p2;
+    if (p1_charIndex == p2_charIndex) {
+        states_p2 = parse_scr(bbcf_base_adress, 1);
+    } else {
+        states_p2 = parse_scr(bbcf_base_adress, 2);
+    }
 
     for (size_t i1 = 0; i1 < states_p1.size(); i1++) {
         p1_StateMap[states_p1[i1]->name] = states_p1[i1];
