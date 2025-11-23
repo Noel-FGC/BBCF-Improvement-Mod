@@ -124,9 +124,19 @@ void replace_all(
         HINTERNET hInternet = 0, hRequest = 0;
         hInternet = InternetOpenA(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
         DWORD total_bytes_read = 0;
-
+        DWORD dwStatusCode = 0;
+        DWORD dwLength = sizeof(dwStatusCode);
         if (hInternet)
             hRequest = InternetOpenUrlA(hInternet, url.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+            HttpQueryInfoA(
+                hRequest,
+                HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER,
+                &dwStatusCode,
+                &dwLength,
+                NULL
+            );
+            if (dwStatusCode != 200) { return false; }
+
 
         if (hRequest) {
             DWORD n = 0;
