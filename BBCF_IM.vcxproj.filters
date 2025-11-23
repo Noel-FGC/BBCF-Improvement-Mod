@@ -152,6 +152,7 @@
     <ClCompile Include="src\Overlay\Window\ReplayDBPopupWindow.cpp" />
     <ClCompile Include="src\Overlay\Window\FrameHistory\FrameHistory.cpp" />
     <ClCompile Include="src\Overlay\Window\FrameHistory\FrameHistoryWindow.cpp" />
+    <ClCompile Include="src\Overlay\Window\FrameAdvantage\FrameAdvantageWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="depends\imgui\imgui.h" />
@@ -295,6 +296,7 @@
     <ClInclude Include="src\Game\ReplayFiles\ReplayList.h" />
     <ClInclude Include="src\Overlay\Window\FrameHistory\FrameHistory.h" />
     <ClInclude Include="src\Overlay\Window\FrameHistory\FrameHistoryWindow.h" />
+    <ClInclude Include="src\Overlay\Window\FrameAdvantage\FrameAdvantageWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="export\dinput8.def">

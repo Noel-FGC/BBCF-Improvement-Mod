@@ -15,6 +15,7 @@
     <ClCompile Include="depends\imgui\imgui_demo.cpp" />
     <ClCompile Include="depends\imgui\imgui_draw.cpp" />
     <ClCompile Include="depends\imgui\imgui_impl_dx9.cpp" />
+    <ClCompile Include="src\Overlay\Window\FrameAdvantage\FrameAdvantageWindow.cpp" />
     <ClCompile Include="src\Overlay\Window\FrameHistory\FrameHistory.cpp" />
     <ClCompile Include="src\Overlay\Window\FrameHistory\FrameHistoryWindow.cpp" />
     <ClCompile Include="src\Overlay\Window\ReplayDBPopupWindow.cpp" />
@@ -105,6 +106,7 @@
     <ClInclude Include="depends\imgui\stb_truetype.h" />
     <ClInclude Include="src\Core\keycodes.h" />
     <ClInclude Include="src\Game\ReplayFiles\ReplayList.h" />
+    <ClInclude Include="src\Overlay\Window\FrameAdvantage\FrameAdvantageWindow.h" />
     <ClInclude Include="src\Overlay\Window\FrameHistory\FrameHistory.h" />
     <ClInclude Include="src\Overlay\Window\FrameHistory\FrameHistoryWindow.h" />
     <ClInclude Include="src\Overlay\Window\ReplayDBPopupWindow.h" />
