@@ -40,6 +40,7 @@ public:
 	int set_selected_replay_index(int i, bool wrap = false);
 
 	void unpack_replay_buffer(); // calls BBCF function to unpack BBCF replay_buffer into loaded replay location
+	bool validate_url_prefix(char* url);
 };
 
 extern ReplayFileManager g_rep_manager;

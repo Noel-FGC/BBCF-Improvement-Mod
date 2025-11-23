@@ -1738,7 +1738,7 @@ void ScrWindow::DrawReplayTheaterSection() {
 
             if (ImGui::Button("Load")) {
 
-                if (strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0) // load url
+                if(g_rep_manager.validate_url_prefix(filename))
                     g_rep_manager.download_replay(filename, NULL);
 
                 else // load file
@@ -1762,9 +1762,14 @@ void ScrWindow::DrawReplayTheaterSection() {
             if (param_changed) {
                 DWORD n = 256;
                 InternetCanonicalizeUrlA(param, filename, &n, ICU_DECODE);
-                // g_rep_manager.download_replay(filename, NULL);
-                // g_rep_manager.unpack_replay_buffer();
-                // PlayLoadedReplay();
+                if (g_rep_manager.validate_url_prefix(filename)) { //Makes sure the urls are only from the upload endpoint and bbreplay.ovh for now due to safety.
+                    if (g_rep_manager.download_replay(filename, NULL)) {
+                        g_rep_manager.unpack_replay_buffer();
+                        ScenesManager::PlayLoadedReplay();
+                    };
+                }
+            
+                // TODO:  Add a popup saying it failed to download the file later so it doesnt just fail silently.
             }
 
 

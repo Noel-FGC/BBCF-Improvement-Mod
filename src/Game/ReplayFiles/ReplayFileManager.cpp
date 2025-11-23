@@ -594,6 +594,16 @@ void ReplayFileManager::unpack_replay_buffer() {
     Method1 unpack_replay = (Method1)(base + 0x0029ca10); //&base->CBattleReplayDataManager___unpack_replay;
     unpack_replay(base + 0x115b470); //&base->static_CBattleReplayDataManager); // moves data from _.replay_buffer to _.replay
 }
-
+bool ReplayFileManager::validate_url_prefix(char* url) {
+    auto url_replay_db = ("http://" + g_modVals.uploadReplayDataHost);
+    auto len = url_replay_db.size();
+    auto url_replay_db_cs = url_replay_db.c_str();
+    auto url_replay_db_cs_2 = "https://bbreplay.ovh";
+    auto len2 = 20;
+    if (strncmp(url, url_replay_db_cs, len) == 0 || strncmp(url, url_replay_db_cs_2, len2) == 0) {
+        return true;
+    }
+    return false;
+}
 
 ReplayFileManager g_rep_manager;
