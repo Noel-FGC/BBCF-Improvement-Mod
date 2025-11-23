@@ -9,6 +9,7 @@
 #include "Game/ReplayFiles/ReplayList.h"
 #include "Game/ReplayFiles/ReplayFileManager.h"
 #include "Game/Menus/TrainingSetupMenu.h"
+#include "Game/ScenesManager/ScenesManager.h"
 #include "Overlay/NotificationBar/NotificationBar.h"
 #include "Overlay/WindowManager.h"
 #include "Overlay/Window/HitboxOverlay.h"
@@ -1480,41 +1481,6 @@ void toggle_char_distance_code(bool skip);
 
 
 
-typedef int(__thiscall* Method1)(void*);
-typedef int(__thiscall* Method2)(void*, int);
-
-void GoToMainMenu() {
-    char* base = GetBbcfBaseAdress();
-    auto scene = *(char**)(base + 0x8903b0 + 0x2604); //base->static_GameVals.current_scene;
-    if (scene != 0 && *(int*)(scene + 0x2c) != 9) return; // let the current scene finish loading
-
-    *(int*)(base + 0x8903b0 + 0x108) = 13; //base->static_GameVals.GameMode = GameMode_MainMenuScreen;
-    *(int*)(base + 0x8903b0 + 0x110) = GameState_MainMenu; //base->static_GameVals.NextGameScene = GameState_MainMenu;
-    if (scene != 0) *(int*)(scene + 0x14) = 2; //scene->base.state = 2; // remove task
-}
-
-void GoToNextScene() {
-    char* base = GetBbcfBaseAdress();
-    auto scene = *(char**)(base + 0x8903b0 + 0x2604); //base->static_GameVals.current_scene;
-    auto* GameSceneState = scene + 0x2c;
-    if (scene != 0 && *GameSceneState == 9) *GameSceneState = 10;
-}
-
-void PlayLoadedReplay() {
-    char* base = GetBbcfBaseAdress();
-    auto scene = *(char**)(base + 0x8903b0 + 0x2604); //base->static_GameVals.current_scene;
-
-    if (scene != 0 && *(int*)(scene + 0x2c) == 9) {
-        int* replay_menu_state = (int*)((char*)base + 0x01304b90); // base->_replay_list_menu_state;
-        replay_menu_state[0] = 1; // not -1
-        Method1 set_next_scene = (Method1)(base + 0x002c2960); //&base->SCENE_CReplayTheater__set_next_scene;
-        set_next_scene(scene); // works even if current scene isn't CReplayTheater
-        /*__asm {
-            mov ecx, scene
-            call[set_next_scene]
-        }*/
-    }
-}
 
 #include <wininet.h> // only for InternetCanonicalizeUrlA
 
@@ -1732,10 +1698,9 @@ void ScrWindow::DrawReplayTheaterSection() {
 
             //static char filename[256] = "https://bbreplay.ovh/download?filename=082009246cfd79b5a64208ba2.dat";
             static char filename[256] = "./Save/Replay/replay00.dat";
-
             ImGui::InputText("##replay_filename", filename, 256);
             ImGui::SameLine();
-
+            
             if (ImGui::Button("Load")) {
 
                 if(g_rep_manager.validate_url_prefix(filename))
@@ -1757,10 +1722,13 @@ void ScrWindow::DrawReplayTheaterSection() {
             static char last_param[256] = "";
             if (strcmp(param, last_param) != 0) {
                 strncpy(last_param, param, sizeof(last_param) - 1);
+                strncpy(filename, param, sizeof(filename)-1);
                 param_changed = true;
+                
             }
             if (param_changed) {
                 DWORD n = 256;
+
                 InternetCanonicalizeUrlA(param, filename, &n, ICU_DECODE);
                 if (g_rep_manager.validate_url_prefix(filename)) { //Makes sure the urls are only from the upload endpoint and bbreplay.ovh for now due to safety.
                     if (g_rep_manager.download_replay(filename, NULL)) {
@@ -1792,7 +1760,7 @@ void ScrWindow::DrawReplayTheaterSection() {
                     ImGui::Text("      at %s", rp->date1);
 
                     if (ImGui::Button(is_playing ? "Restart##replay" : "Play##replay")) {
-                        PlayLoadedReplay();
+                        ScenesManager::PlayLoadedReplay();
                     }
 
                     ImGui::SameLine();
@@ -1814,7 +1782,7 @@ void ScrWindow::DrawReplayTheaterSection() {
                         if (i1 != i0) {
                             g_rep_manager.load_replay(i1, NULL);
                             g_rep_manager.unpack_replay_buffer();
-                            PlayLoadedReplay();
+                            ScenesManager::PlayLoadedReplay();
                         }
                     }
                 }
