@@ -108,7 +108,28 @@ void RestoreDistortionBG()
   HookManager::OverWriteBytesAtRVA(Addr4, originalBytes4, byteLength4);
   HookManager::OverWriteBytesAtRVA(Addr5, originalBytes5, byteLength5);
 }
-static std::vector<Patch> patches = {
+
+
+void EnableInstantRestart()
+{
+    DWORD Address = (DWORD)0x160FEA;
+    char* ModdedBytes = "\x90\x90"; // nop nop
+    int byteLength = 2;
+
+    HookManager::OverWriteBytesAtRVA(Address, ModdedBytes, byteLength);
+}
+
+void DisableInstantRestart()
+{
+
+    DWORD Address = (DWORD)0x160FEA;
+    char* VanillaBytes = "\x75\x0D"; // jne 00560FF9
+    int byteLength = 2;
+
+    HookManager::OverWriteBytesAtRVA(Address, VanillaBytes, byteLength);
+}
+
+static std::vector<Patch> patches {
   { "Disable OD Distortion BG Filter",
     "Disables The Red Filter That Displays Over The Distortion Drive Stage Background While In Overdrive, Mainly Used With A Replaced Distortion Stage", &Settings::settingsIni.DisableODDDBGPatch,
     RemoveODFilter, RestoreODFilter, "DisableODDDBGPatch" },
@@ -120,7 +141,12 @@ static std::vector<Patch> patches = {
     DisableODStageFilter, RestoreODStageFilter, "DisableODFilterPatch" },
   { "Disable DD Stage Background",
     "Disable the stage change when someone does a distortion drive, mainly used with a green screen stage as its not clean", &Settings::settingsIni.DisableDDStagePatch,
-    DisableDistortionBG, RestoreDistortionBG, "DisableDDStagePatch" }
+    DisableDistortionBG, RestoreDistortionBG, "DisableDDStagePatch" },
+  {
+      "Enable Instant Restart",
+      "Skips The Long Fade To Black Before Resetting Positions In Training Mode", &Settings::settingsIni.EnableInstantRestartPatch,
+      EnableInstantRestart, DisableInstantRestart, "EnableInstantRestartPatch"
+  }
 };
 
 void PatchManager::ApplyPatches()
