@@ -13,6 +13,8 @@
 #include "Overlay/Window/ComboDataWindow.h"
 #include "Overlay/Window/ReplayDBPopupWindow.h" 
 #include "Overlay/Window/FrameHistory/FrameHistoryWindow.h"
+#include "Overlay/Window/FrameAdvantage/FrameAdvantageWindow.h"
+#include "Overlay/Window/ReplayRewindWindow.h"
 
 #include "Core/info.h"
 #include "Core/logger.h"
@@ -63,4 +65,12 @@ WindowContainer::WindowContainer()
 
 	AddWindow(WindowType_FrameHistory,
 		new FrameHistoryWindow("Frame History", true));
+
+	AddWindow(WindowType_FrameAdvantage,
+		new FrameAdvantageWindow("Frame Advantage", true, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse));
+	
+	AddWindow(WindowType_ReplayRewind,
+		new ReplayRewindWindow("Replay Rewind", true, *this, ImGuiWindowFlags_NoTitleBar));
 }
+
+

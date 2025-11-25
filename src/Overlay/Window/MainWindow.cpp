@@ -4,6 +4,7 @@
 #include "HitboxOverlay.h"
 #include "PaletteEditorWindow.h"
 #include "FrameHistory/FrameHistoryWindow.h"
+#include "FrameAdvantage/FrameAdvantageWindow.h"
 
 #include "Core/Settings.h"
 #include "Core/info.h"
@@ -222,72 +223,22 @@ void MainWindow::DrawFrameAdvantageSection() const
 	if (!g_gameVals.pEntityList)
 		return;
 
-	computeFramedataInteractions();
-
 	static bool isFrameAdvantageOpen = false;
 	ImGui::HorizontalSpacing();
-	ImGui::Checkbox(isFrameAdvantageOpen? "Disable##framedata_section" : "Enable##framedata_section", &isFrameAdvantageOpen);
+	ImGui::Checkbox("Enable##framedata_section", &isFrameAdvantageOpen);
 	//ImGui::Checkbox("Enable##framedata_section", &isFrameAdvantageOpen);
-
 	ImGui::HorizontalSpacing();
 	ImGui::Checkbox("Advantage on stagger hit", &idleActionToggles.ukemiStaggerHit);
 
 	if (isFrameAdvantageOpen)
 	{
-		ImVec4 color;
-		ImVec4 white(1.0f, 1.0f, 1.0f, 1.0f);
-		ImVec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-		ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
-
-		/* Window */
-		ImGui::Begin("Framedata", &isFrameAdvantageOpen);
-		ImGui::SetWindowSize(ImVec2(220, 100), ImGuiCond_FirstUseEver);
-		ImGui::SetWindowPos(ImVec2(350, 250), ImGuiCond_FirstUseEver);
-
-		ImGui::Columns(2, "columns_layout", true);
-
-		// First column
-		if (playersInteraction.frameAdvantageToDisplay > 0)
-			color = green;
-		else if (playersInteraction.frameAdvantageToDisplay < 0)
-			color = red;
-		else
-			color = white;
-
-		ImGui::Text("Player 1");
-		ImGui::TextUnformatted("Gap:");
-		ImGui::SameLine();
-		ImGui::TextUnformatted(((playersInteraction.p1GapDisplay != -1) ? std::to_string(playersInteraction.p1GapDisplay) : "").c_str());
-
-		ImGui::TextUnformatted("Advantage:");
-		ImGui::SameLine();
-		std::string str = std::to_string(playersInteraction.frameAdvantageToDisplay);
-		if (playersInteraction.frameAdvantageToDisplay > 0)
-			str = "+" + str;
-
-		ImGui::TextColored(color, "%s", str.c_str());
-
-		// Next column
-		if (playersInteraction.frameAdvantageToDisplay > 0)
-			color = red;
-		else if (playersInteraction.frameAdvantageToDisplay < 0)
-			color = green;
-		else
-			color = white;
-
-		ImGui::NextColumn();
-		ImGui::Text("Player 2");
-		ImGui::TextUnformatted("Gap:");
-		ImGui::SameLine();
-		ImGui::TextUnformatted(((playersInteraction.p2GapDisplay != -1) ? std::to_string(playersInteraction.p2GapDisplay) : "").c_str());
-
-		ImGui::TextUnformatted("Advantage:");
-		ImGui::SameLine();
-		std::string str2 = std::to_string(-playersInteraction.frameAdvantageToDisplay);
-		if (playersInteraction.frameAdvantageToDisplay < 0)
-			str2 = "+" + str2;
-		ImGui::TextColored(color, "%s", str2.c_str());
-		ImGui::End();
+		m_pWindowContainer->GetWindow(WindowType_FrameAdvantage)->Open();
+		
+	}
+	else
+	{
+		m_pWindowContainer->GetWindow(WindowType_FrameAdvantage)->Close();
+		//frameAdvWin->Close();
 	}
 }
 
@@ -403,13 +354,13 @@ void MainWindow::DrawHitboxOverlaySection() const
 		if (g_gameVals.pFrameCount)
 		{
 			ImGui::SameLine();
-			ImGui::Text("%d", *g_gameVals.pFrameCount);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset"))
-			{
-				*g_gameVals.pFrameCount = 0;
-				g_gameVals.framesToReach = 0;
-			}
+ImGui::Text("%d", *g_gameVals.pFrameCount);
+ImGui::SameLine();
+if (ImGui::Button("Reset"))
+{
+	*g_gameVals.pFrameCount = 0;
+	g_gameVals.framesToReach = 0;
+}
 		}
 
 		if (g_gameVals.isFrameFrozen)
@@ -478,16 +429,16 @@ void MainWindow::DrawControllerSettingSection() const {
 	if (!ImGui::CollapsingHeader("Controller Settings"))
 		return;
 	static bool controller_position_swapped = false;
-	
-	if(ImGui::Checkbox("Keyboard + Controller/ Swap controller pos", &controller_position_swapped)) {
+
+	if (ImGui::Checkbox("Keyboard + Controller/ Swap controller pos", &controller_position_swapped)) {
 		//make the battle_key_controller into a proper struck later
 		char*** battle_key_controller = (char***)(GetBbcfBaseAdress() + 0x8929c8);
-		char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);     
-		char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);    
-		char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);       
-		char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);         
-		char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);    
-		char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);    
+		char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);
+		char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);
+		char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);
+		char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);
+		char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);
+		char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);
 		std::swap(*menu_control_p1, *menu_control_p2);
 		std::swap(*char_control_p1, *char_control_p2);
 		std::swap(*unknown_p1, *unknown_p2);
@@ -498,11 +449,17 @@ void MainWindow::DrawControllerSettingSection() const {
 void MainWindow::DrawLinkButtons() const
 {
 	//ImGui::ButtonUrl("Replay Database", REPLAY_DB_FRONTEND, BTN_SIZE);
+	if (*g_gameVals.pGameMode == GameMode_ReplayTheater) {
+		if (ImGui::Button("Toggle Rewind"))
+			m_pWindowContainer->GetWindow(WindowType_ReplayRewind)->ToggleOpen();
+	}
 	ImGui::ButtonUrl("Replay Database", REPLAY_DB_FRONTEND);
 	ImGui::SameLine();
 	if (ImGui::Button("Enable/Disable Upload")) {
 		m_pWindowContainer->GetWindow(WindowType_ReplayDBPopup)->ToggleOpen();
 	}
+	
+	
 	ImGui::ButtonUrl("Discord", MOD_LINK_DISCORD, BTN_SIZE);
 
 	ImGui::SameLine();

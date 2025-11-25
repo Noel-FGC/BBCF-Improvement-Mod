@@ -16,4 +16,6 @@ enum WindowType_
 	WindowType_ComboData,
 	WindowType_ReplayDBPopup,
 	WindowType_FrameHistory,
+	WindowType_FrameAdvantage,
+	WindowType_ReplayRewind,
 };
