@@ -70,7 +70,7 @@ WindowContainer::WindowContainer()
 		new FrameAdvantageWindow("Frame Advantage", true, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse));
 	
 	AddWindow(WindowType_ReplayRewind,
-		new ReplayRewindWindow("Replay Rewind", true, *this));
+		new ReplayRewindWindow("Replay Rewind", true, *this, ImGuiWindowFlags_NoTitleBar));
 }
 
 
