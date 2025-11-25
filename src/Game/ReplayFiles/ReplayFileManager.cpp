@@ -7,8 +7,9 @@
 #include <regex>
 #include <experimental/filesystem>
 #include "Game/characters.h"
+#include "Game/ScenesManager/ScenesManager.h"
+#include "Game/gamestates.h"
 #include <Core/interfaces.h>
-
 #include <wininet.h>
 #include <atlstr.h>
 #include <Web/url_downloader.h>
@@ -604,6 +605,50 @@ bool ReplayFileManager::validate_url_prefix(char* url) {
         return true;
     }
     return false;
+}
+
+void ReplayFileManager::check_and_load_replay_steam()
+{
+    if (!SafeDereferencePtr((int*)&g_gameVals)) {
+        return;
+    }
+    char* base = GetBbcfBaseAdress();
+    if
+        (*g_gameVals.pGameState != GameState_ArcsysLogo
+            && *g_gameVals.pGameState != GameState_IntroVideoPlaying
+            && *g_gameVals.pGameState != GameState_TitleScreen
+            && *(base + 0x8903b0 + 0x2600) >= 9){//this code checks the GameSceneState, means its initialized already and running {
+        static char filename[256] = "./Save/Replay/replay00.dat";
+
+
+
+        ISteamApps* apps = *(ISteamApps**)((char*)base + 0x005d3230); // base->static_SteamInterfaces.apps
+        const char* param = apps->GetLaunchQueryParam("load-replay");
+        ReplayFileManager g_rep_manager;
+        //ImGui::Text("steam test param %p %s", param, param);
+
+        bool param_changed = false;
+        static char last_param[256] = "";
+        if (strcmp(param, last_param) != 0) {
+            strncpy(last_param, param, sizeof(last_param) - 1);
+            strncpy(filename, param, sizeof(filename) - 1);
+            param_changed = true;
+
+        }
+        if (param_changed) {
+            DWORD n = 256;
+
+            InternetCanonicalizeUrlA(param, filename, &n, ICU_DECODE);
+            if (g_rep_manager.validate_url_prefix(filename)) { //Makes sure the urls are only from the upload endpoint and bbreplay.ovh for now due to safety.
+                if (g_rep_manager.download_replay(filename, NULL)) {
+                    g_rep_manager.unpack_replay_buffer();
+                    ScenesManager::PlayLoadedReplay();
+                };
+            }
+
+            // TODO:  Add a popup saying it failed to download the file later so it doesnt just fail silently.
+        }
+    }
 }
 
 ReplayFileManager g_rep_manager;

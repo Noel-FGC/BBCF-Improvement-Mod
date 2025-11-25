@@ -41,6 +41,7 @@ public:
 
 	void unpack_replay_buffer(); // calls BBCF function to unpack BBCF replay_buffer into loaded replay location
 	bool validate_url_prefix(char* url);
+	void check_and_load_replay_steam();
 };
 
 extern ReplayFileManager g_rep_manager;
