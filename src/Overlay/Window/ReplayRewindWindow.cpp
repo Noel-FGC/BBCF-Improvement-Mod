@@ -83,11 +83,15 @@ void ReplayRewindWindow::Draw()
 
     auto bbcf_base_adress = GetBbcfBaseAdress();
 
-    std::vector<unsigned int> frame_checkpoints_clipped;
-    frame_checkpoints_clipped = std::vector<unsigned int>{};
     SnapshotApparatus* snap_apparatus_replay_rewind = g_interfaces.pReplayRewindManager->snap_apparatus_replay_rewind;
 
     //static SnapshotApparatus* snap_apparatus_replay_rewind = nullptr;
+    if ((*g_gameVals.pGameState != GameState_InMatch) ||
+        (*g_gameVals.pGameMode != GameMode_ReplayTheater &&
+            *g_gameVals.pGameMode != GameMode_Training))
+    {
+        this->Close();
+    }
     if (*g_gameVals.pGameMode != GameMode_ReplayTheater || *g_gameVals.pGameState != GameState_InMatch) {
         ImGui::Text("Only works during a running replay");
 
@@ -128,9 +132,11 @@ You can see the frames of all saved checkpoints and more advanced info on the \"
                 ImGui::RadioButton("9s", &g_interfaces.pReplayRewindManager->FRAME_STEP, 540);
             }
             ImGui::EndGroup();
+#ifdef _DEBUG
+
             ImGui::Separator();
 
-            if (ImGui::TreeNode("Saved Checkpoints Advanced Info")) {
+            if (ImGui::TreeNode("Saved Checkpoints Adv. Info")) {
                 ImGui::Text("Rewind pos: +%d", g_interfaces.pReplayRewindManager->rewind_pos);
                 //auto nearest_pos = ReplayRewindWindow::find_nearest_checkpoint(frame_checkpoints_clipped);
                 //ImGui::Text("Rewind checkpoint: %d    FF checkpoint(nearest): %d", nearest_pos[0], nearest_pos[1]);
@@ -149,6 +155,7 @@ You can see the frames of all saved checkpoints and more advanced info on the \"
                 }
                 ImGui::TreePop();
             }
+#endif
 
         }
     }
