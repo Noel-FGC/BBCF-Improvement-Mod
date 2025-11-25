@@ -66,6 +66,11 @@ void InitManagers()
 	{
 		g_interfaces.pReplayUploadManager = new ReplayUploadManager(g_interfaces.pRoomManager);
 	}
+	if (!g_interfaces.pReplayRewindManager)
+	{
+		g_interfaces.pReplayRewindManager =  new ReplayRewind();
+
+	}
 }
 
 void CleanupInterfaces()
