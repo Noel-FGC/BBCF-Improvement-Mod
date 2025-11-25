@@ -351,7 +351,8 @@ void __declspec(naked)MatchIntroStartsPlayingFunc()
 		if (g_rep_manager.template_modified)
 			g_rep_manager.load_replay_list_default();
 	}
-
+	MatchState::OnIntroPlaying();
+	
 	__asm
 	{
 		popad

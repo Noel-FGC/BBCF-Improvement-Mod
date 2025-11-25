@@ -1,6 +1,7 @@
 #pragma once
 #include "Game/GhidraDefs.h"
-#include "Core/Interfaces.h"
+#include "Game/CharData.h"
+#include <map>
 #define SNAPSHOT_PREALLOC_SIZE  1
 
 class Snapshot {
