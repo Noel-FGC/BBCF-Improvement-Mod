@@ -120,10 +120,10 @@ Changelog
 26-11-2025 -- version 3.110
 ===============================
 Features:
-- Added replay loading directly from database (+@subl)
-- Decoupled replay rewind so it doesn't need to be open to record checkpoints
+- Added replay loading directly from database (+@Tada)
+- Replay Rewind no longer need to have its window open to record frames to rewind to
 - Replay rewind window now is standalone and open automatically on replay start
-
+- Framde advantage window no longer needs the F1 window to stay open
 
 ===============================
 02-11-2025 -- version 3.101
