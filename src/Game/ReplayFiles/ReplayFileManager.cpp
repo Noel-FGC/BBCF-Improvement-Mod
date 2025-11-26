@@ -617,7 +617,7 @@ void ReplayFileManager::check_and_load_replay_steam()
         (*g_gameVals.pGameState != GameState_ArcsysLogo
             && *g_gameVals.pGameState != GameState_IntroVideoPlaying
             && *g_gameVals.pGameState != GameState_TitleScreen
-            && *(base + 0x8903b0 + 0x2600) >= 9){//this code checks the GameSceneState, means its initialized already and running {
+            && (GetGameSceneStatus() >= 9)){//this code checks if the scene is already initialized and running 
         static char filename[256] = "./Save/Replay/replay00.dat";
 
 
