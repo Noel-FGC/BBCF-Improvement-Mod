@@ -117,6 +117,15 @@ Keep in mind that the mod may partially, or completely stop working whenever a n
 Changelog
 
 ===============================
+26-11-2025 -- version 3.110
+===============================
+Features:
+- Added replay loading directly from database (+@subl)
+- Decoupled replay rewind so it doesn't need to be open to record checkpoints
+- Replay rewind window now is standalone and open automatically on replay start
+
+
+===============================
 02-11-2025 -- version 3.101
 ===============================
 Features:
