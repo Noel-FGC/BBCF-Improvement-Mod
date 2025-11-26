@@ -135,5 +135,6 @@ extern gameVals_t g_gameVals;
 extern temps_t g_tempVals;
 extern modValues_t g_modVals;
 
+int GetGameSceneStatus();
 void InitManagers();
 void CleanupInterfaces();
