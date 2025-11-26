@@ -9,6 +9,7 @@
 #include "Game/ReplayFiles/ReplayList.h"
 #include "Game/ReplayFiles/ReplayFileManager.h"
 #include "Game/Menus/TrainingSetupMenu.h"
+#include "Game/ScenesManager/ScenesManager.h"
 #include "Overlay/NotificationBar/NotificationBar.h"
 #include "Overlay/WindowManager.h"
 #include "Overlay/Window/HitboxOverlay.h"
@@ -1472,6 +1473,11 @@ void restore_replays(int fname_size_max) {
     WriteToProtectedMemory(replay_file_template, original_name, fname_size_max);
 
 }
+
+
+#include <wininet.h> // only for InternetCanonicalizeUrlA
+
+
 void ScrWindow::DrawReplayTheaterSection() {
     /*std::filesystem::path targetParent = "./Save/Replay/locals";
     std::filesystem::create_directories(targetParent);*/
@@ -1531,6 +1537,11 @@ void ScrWindow::DrawReplayTheaterSection() {
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Archiving will copy and rename all current replays to Save/Replay/archive/ .");
 
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Auto archive saved replays", &Settings::settingsIni.autoArchive)) {
+            Settings::changeSetting("autoArchive", std::to_string((int)Settings::settingsIni.autoArchive));
+        }
+
 
 
 
@@ -1545,19 +1556,20 @@ void ScrWindow::DrawReplayTheaterSection() {
             if (ImGui::RadioButton("Recent replays", &view_type, 0))
                 view_changed = true;
 
-            if (ImGui::RadioButton("Replay archive", &view_type, 1))
-                view_changed = true;
-
-            ImGui::RadioButton("Replay db", &view_type, 2);
-
-
             if (view_type == 0) {
+                ImGui::SameLine();
+
                 if (ImGui::Button("Repair##replay_list"))
                     g_rep_manager.load_replay_list_default_repair();
 
                 if (view_changed)
                     g_rep_manager.load_replay_list_default();
             }
+
+            if (ImGui::RadioButton("Replay archive", &view_type, 1))
+                view_changed = true;
+
+            ImGui::RadioButton("Replay db", &view_type, 2);
 
 
             if (view_type == 1) { // archive controls
@@ -1628,6 +1640,12 @@ void ScrWindow::DrawReplayTheaterSection() {
 
             int selected_index = replay_list->order[selected_order]; //*(int*)(replay_list + 8 + 100 * 0x390 + selected_order * 4);
 
+            static bool first = true;
+            if (first && replay_list->count == 0) { // otherwise count is 0 until you go to replay theater
+                g_rep_manager.bbcf_sort_replay_list();
+                first = false;
+            }
+
             if (selected_index != -1) {
                 ReplayFile* rp = replay_list->replays[selected_index].data(); // (ReplayFile*)(replay_list + 8 + selected_index * 0x390 - 8); // only first 0x390 bytes match
 
@@ -1636,6 +1654,23 @@ void ScrWindow::DrawReplayTheaterSection() {
                 ImGui::Text("      vs  %s (lvl%d %s)%s",
                     utf16_to_utf8(rp->p2_name).c_str(), rp->p2_lvl + 1, getCharacterNameByIndexA(rp->p2_toon).c_str(), rp->winner_maybe == 1 ? " (win)" : "");
                 // TODO: draw replay levels, winner and other metadata on top of bbcf list ui?
+
+                if (ImGui::Button("<##replay_list_prev"))
+                    g_rep_manager.set_selected_replay_index(selected_order - 1, true);
+                ImGui::SameLine();
+
+                ImGui::Text("index %3d / %d", selected_order + 1, replay_list->count); // *(int*)(base + 0x8f85d8 + 0x1b1230 + 0x165d8)); // base->static_CSaveDataManager.replay_list.count
+                ImGui::SameLine();
+
+                if (ImGui::Button(">##replay_list_next"))
+                    g_rep_manager.set_selected_replay_index(selected_order + 1, true);
+
+                ImGui::SameLine();
+                if (ImGui::Button("Load##replay_list_next")) {
+                    g_rep_manager.load_replay(selected_order, NULL);
+                    g_rep_manager.unpack_replay_buffer();
+                }
+
 
                 if (view_type == 2) { // if db
                     if (ImGui::Button("Save selected replay to archive##replay_db")) {
@@ -1646,6 +1681,103 @@ void ScrWindow::DrawReplayTheaterSection() {
                         rep_manager.load_replay(path);
                         auto new_fname = rep_manager.build_file_name();
                         rep_manager.save_replay(REPLAY_ARCHIVE_FOLDER_PATH + new_fname);
+                    }
+                }
+            }
+
+
+            ImGui::Separator();
+
+            // load external replay file
+
+            //static char filename[256] = "https://bbreplay.ovh/download?filename=082009246cfd79b5a64208ba2.dat";
+            static char filename[256] = "./Save/Replay/replay00.dat";
+            ImGui::InputText("##replay_filename", filename, 256);
+            ImGui::SameLine();
+            
+            if (ImGui::Button("Load")) {
+
+                if(g_rep_manager.validate_url_prefix(filename))
+                    g_rep_manager.download_replay(filename, NULL);
+
+                else // load file
+                    g_rep_manager.load_replay(filename, NULL);
+
+                // TODO: check that replay in buffer is valid, show message otherwise
+                g_rep_manager.unpack_replay_buffer();
+            }
+
+            // load take filename from steam url, e.g. steam://run/586140/?load-replay=https%3A%2F%2Fbbreplay.ovh%2Fdownload%3Ffilename%3D082009246cfd79b5a64208ba2.dat
+            ISteamApps* apps = *(ISteamApps**)((char*)base + 0x005d3230); // base->static_SteamInterfaces.apps
+            const char* param = apps->GetLaunchQueryParam("load-replay");
+            //ImGui::Text("steam test param %p %s", param, param);
+
+            bool param_changed = false;
+            static char last_param[256] = "";
+            if (strcmp(param, last_param) != 0) {
+                strncpy(last_param, param, sizeof(last_param) - 1);
+                strncpy(filename, param, sizeof(filename)-1);
+                param_changed = true;
+                
+            }
+            if (param_changed) {
+                DWORD n = 256;
+
+                InternetCanonicalizeUrlA(param, filename, &n, ICU_DECODE);
+                if (g_rep_manager.validate_url_prefix(filename)) { //Makes sure the urls are only from the upload endpoint and bbreplay.ovh for now due to safety.
+                    if (g_rep_manager.download_replay(filename, NULL)) {
+                        g_rep_manager.unpack_replay_buffer();
+                        ScenesManager::PlayLoadedReplay();
+                    };
+                }
+            
+                // TODO:  Add a popup saying it failed to download the file later so it doesnt just fail silently.
+            }
+
+
+
+            ImGui::Separator();
+
+            // print extra info about the loaded replay
+            {
+                static bool autoplay = false, really_autoplay = false;
+
+                ReplayFile* rp = (ReplayFile*)(base + 0x0115b478);
+                if (g_rep_manager.check_file_validity(rp)) {
+                    ImGui::Separator();
+
+                    bool is_playing = *g_gameVals.pGameMode == GameMode_ReplayTheater && (*g_gameVals.pGameState == GameState_InMatch || *g_gameVals.pGameState == GameState_VersusScreen);
+                    ImGui::Text(is_playing ? "Playing: %s (lvl%d %s)%s" : "Loaded: %s (lvl%d %s)%s",
+                        utf16_to_utf8(rp->p1_name).c_str(), rp->p1_lvl + 1, getCharacterNameByIndexA(rp->p1_toon).c_str(), rp->winner_maybe == 0 ? " (win)" : "");
+                    ImGui::Text("      vs  %s (lvl%d %s)%s",
+                        utf16_to_utf8(rp->p2_name).c_str(), rp->p2_lvl + 1, getCharacterNameByIndexA(rp->p2_toon).c_str(), rp->winner_maybe == 1 ? " (win)" : "");
+                    ImGui::Text("      at %s", rp->date1);
+
+                    if (ImGui::Button(is_playing ? "Restart##replay" : "Play##replay")) {
+                        ScenesManager::PlayLoadedReplay();
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::Checkbox("autoplay", &autoplay);
+                }
+
+                if (autoplay) {
+                    if (*g_gameVals.pGameState == GameState_InMatch) {
+                        auto match_state = *(int*)(base + 0xdb6ae0 + 0x62b7c + 0x30); //base->static_BATTLE_CObjectManager.match_info.match_state;
+                        if (match_state > 3) really_autoplay = true; // only autoplay if watched to the end
+                        if (match_state < 3) really_autoplay = false;
+                    }
+
+                    char* scene = *(char**)(base + 0x8903b0 + 0x2604); // base->static_GameVals.current_scene
+                    if (*g_gameVals.pGameState == GameState_ReplayMenu && really_autoplay && *(int*)(scene + 0x2c) == 9) {//scene->GameSceneState == 9) {
+                        really_autoplay = false;
+                        int i0 = g_rep_manager.get_selected_replay_index();
+                        int i1 = g_rep_manager.set_selected_replay_index(i0 + 1, false);
+                        if (i1 != i0) {
+                            g_rep_manager.load_replay(i1, NULL);
+                            g_rep_manager.unpack_replay_buffer();
+                            ScenesManager::PlayLoadedReplay();
+                        }
                     }
                 }
             }
