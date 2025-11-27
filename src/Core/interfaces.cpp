@@ -12,7 +12,7 @@ modValues_t g_modVals = {};
 void InitManagers()
 {
 	LOG(1, "InitManagers\n");
-
+	
 	if (g_interfaces.pSteamNetworkingWrapper &&
 		g_interfaces.pSteamUserWrapper &&
 		!g_interfaces.pNetworkManager)
@@ -66,6 +66,11 @@ void InitManagers()
 	{
 		g_interfaces.pReplayUploadManager = new ReplayUploadManager(g_interfaces.pRoomManager);
 	}
+	if (!g_interfaces.pReplayRewindManager)
+	{
+		g_interfaces.pReplayRewindManager =  new ReplayRewind();
+
+	}
 }
 
 void CleanupInterfaces()
@@ -88,4 +93,10 @@ void CleanupInterfaces()
 	SAFE_DELETE(g_interfaces.pSteamUserWrapper);
 	SAFE_DELETE(g_interfaces.pSteamUtilsWrapper);
 	SAFE_DELETE(g_interfaces.pSteamApiHelper);
+}
+
+int GetGameSceneStatus() {
+	auto base = GetBbcfBaseAdress();
+	int* pGameSceneStatus = (int*)(base + 0x8903b0 + 0x2600);
+	return SafeDereferencePtr(pGameSceneStatus);
 }

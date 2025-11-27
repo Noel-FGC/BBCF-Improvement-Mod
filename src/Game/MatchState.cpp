@@ -2,9 +2,13 @@
 
 #include "Core/interfaces.h"
 #include "Core/logger.h"
+#include "Game/gamestates.h"
+#include "Game/ReplayFiles/ReplayFileManager.h"
 #include "Overlay/Window/PaletteEditorWindow.h"
+#include "Overlay/Window/ReplayRewindWindow.h"
 #include "Overlay/WindowContainer/WindowType.h"
 #include "Overlay/WindowManager.h"
+
 
 void MatchState::OnMatchInit()
 {
@@ -88,6 +92,9 @@ void MatchState::OnMatchEnd()
 	
 }
 
+
+
+
 void MatchState::OnUpdate()
 {
 	LOG(7, "MatchState::OnUpdate\n");
@@ -96,4 +103,15 @@ void MatchState::OnUpdate()
 		g_interfaces.player1.GetPalHandle(),
 		g_interfaces.player2.GetPalHandle()
 	);
+	g_interfaces.pReplayRewindManager->OnUpdate();
+	g_rep_manager.check_and_load_replay_steam();
+}
+
+void MatchState::OnIntroPlaying() 
+{
+	LOG(7, "MatchState::OnIntroPlaying\n");
+
+	if (*g_gameVals.pGameMode == GameMode_ReplayTheater) {
+		WindowManager::GetInstance().GetWindowContainer()->GetWindow<ReplayRewindWindow>(WindowType_ReplayRewind)->Open();
+	}
 }

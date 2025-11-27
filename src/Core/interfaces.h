@@ -5,6 +5,8 @@
 #include "D3D9EXWrapper/ID3D9EXWrapper_Device.h"
 #include "Game/Player.h"
 #include "Game/Room/Room.h"
+#include "Game/ReplayRewind/ReplayRewind.h"
+
 #include "Network/NetworkManager.h"
 #include "Network/OnlineGameModeManager.h"
 #include "Network/OnlinePaletteManager.h"
@@ -41,6 +43,7 @@ struct interfaces_t
 	OnlineGameModeManager* pOnlineGameModeManager;
 
 	ReplayUploadManager* pReplayUploadManager;
+	ReplayRewind* pReplayRewindManager;
 
 	Player player1;
 	Player player2;
@@ -133,5 +136,6 @@ extern gameVals_t g_gameVals;
 extern temps_t g_tempVals;
 extern modValues_t g_modVals;
 
+int GetGameSceneStatus();
 void InitManagers();
 void CleanupInterfaces();

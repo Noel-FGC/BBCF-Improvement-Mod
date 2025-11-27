@@ -117,6 +117,15 @@ Keep in mind that the mod may partially, or completely stop working whenever a n
 Changelog
 
 ===============================
+26-11-2025 -- version 3.110
+===============================
+Features:
+- Added replay loading directly from database (+@Tada)
+- Replay Rewind no longer need to have its window open to record frames to rewind to
+- Replay rewind window now is standalone and open automatically on replay start
+- Framde advantage window no longer needs the F1 window to stay open
+
+===============================
 02-11-2025 -- version 3.101
 ===============================
 Features:

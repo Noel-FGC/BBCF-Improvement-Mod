@@ -1,3 +1,4 @@
+#include <winsock.h>
 typedef unsigned char   undefined;
 
 //typedef unsigned long long    GUID;

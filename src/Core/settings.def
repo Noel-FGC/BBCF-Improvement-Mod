@@ -31,6 +31,7 @@ SETTING(bool, AlwaysODDDBGPatch, "AlwaysODDDBGPatch", "0");
 SETTING(bool, DisableODFilterPatch, "DisableODFilterPatch", "0");
 SETTING(bool, DisableDDStagePatch, "DisableDDStagePatch", "0");
 SETTING(bool, EnableInstantRestartPatch, "EnableInstantRestartPatch", "0");
+SETTING(bool, autoArchive, "autoArchive", "0");
 SETTING(float, FrameHistoryWidth, "FrameHistoryWidth", "12.0");
 SETTING(float, FrameHistoryHeight, "FrameHistoryHeight", "20.0");
 SETTING(float, FrameHistorySpacing, "FrameHistorySpacing", "6.0");

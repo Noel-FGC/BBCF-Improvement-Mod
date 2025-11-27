@@ -351,7 +351,8 @@ void __declspec(naked)MatchIntroStartsPlayingFunc()
 		if (g_rep_manager.template_modified)
 			g_rep_manager.load_replay_list_default();
 	}
-
+	MatchState::OnIntroPlaying();
+	
 	__asm
 	{
 		popad
@@ -680,6 +681,8 @@ void __declspec(naked)UploadReplayToEndpoint()
 		//static char* format_string = "\n GameMode: %d, GameScene: %d, GameSceneStatus: %d \n Improvement Mod loaded \n Version: "  MOD_VERSION_NUM;
 		StartAsyncReplayUpload();
 
+		if (Settings::settingsIni.autoArchive)
+			g_rep_manager.archive_replay((ReplayFile*)(GetBbcfBaseAdress() + 0x11B0348)); // archive directly from replay_buffer
 
 	_asm
 	{
@@ -740,6 +743,18 @@ void __declspec(naked)BeforeWriteReplayListDat()
 		jmp[BeforeWriteReplayListDatJmpBackAddr]
 	}
 	LOG_ASM(2, "BeforeWriteReplayListDat\n");
+}
+
+void __declspec(naked)SkipReplayListConfirm()
+{
+	LOG_ASM(2, "SkipReplayListConfirm\n");
+
+	static char* continue_load;
+	continue_load = GetBbcfBaseAdress() + 0x002c2bcf;
+	_asm {
+		mov eax, 1
+		jmp[continue_load]
+	}
 }
 
 bool placeHooks_bbcf()
@@ -843,6 +858,8 @@ bool placeHooks_bbcf()
 	//DirectHookTestJmpBackAddr = HookManager::SetHook("DirectHookTest",(DWORD)(GetBbcfBaseAdress() + 0x37c3b3) , 6, DirectHookTest);
 
 	BeforeWriteReplayListDatJmpBackAddr = HookManager::SetHook("BeforeWriteReplayListDat", (DWORD)(GetBbcfBaseAdress() + 0x2C2AF8), 5, BeforeWriteReplayListDat);
+
+	HookManager::SetHook("SkipReplayListConfirm", (DWORD)(GetBbcfBaseAdress() + 0x002c3038), 5, SkipReplayListConfirm);
 
 	return true;
 }
