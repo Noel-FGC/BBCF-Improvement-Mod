@@ -7,8 +7,10 @@
 #include <mmsystem.h>
 #include <joystickapi.h>
 
+#include <array>
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <numeric>
 
 namespace
@@ -73,6 +75,49 @@ namespace
         GUID GetGuidFromInstance<DIDEVICEINSTANCEW>(const DIDEVICEINSTANCEW& instance)
         {
                 return instance.guidInstance;
+        }
+
+        bool IsProbablySteamInputActive()
+        {
+                constexpr std::array<const wchar_t*, 3> kSteamEnvVars = {
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT",
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES",
+                        L"SDL_ENABLE_STEAM_CONTROLLERS",
+                };
+
+                for (auto name : kSteamEnvVars)
+                {
+                        if (GetEnvironmentVariableW(name, nullptr, 0) > 0)
+                        {
+                                return true;
+                        }
+                }
+
+                return false;
+        }
+
+        bool IsLikelyVirtualDevice(const ControllerDeviceInfo& info)
+        {
+                if (info.isKeyboard)
+                {
+                        return true;
+                }
+
+                const char* vjoyName = "vJoy Device";
+                if (info.name.size() != strlen(vjoyName))
+                {
+                        return false;
+                }
+
+                for (size_t i = 0; i < info.name.size(); ++i)
+                {
+                        if (std::tolower(static_cast<unsigned char>(info.name[i])) != std::tolower(static_cast<unsigned char>(vjoyName[i])))
+                        {
+                                return false;
+                        }
+                }
+
+                return true;
         }
 }
 
@@ -167,7 +212,7 @@ void ControllerOverrideManager::OpenControllerControlPanel() const
     // Optional: fallback if this fails (res <= 32)
     if ((UINT_PTR)res <= 32)
     {
-        // Old-style fallback – rarely needed, but safe to keep
+        // Old-style fallback - rarely needed, but safe to keep
         std::wstring rundllPath = GetPreferredSystemExecutable(L"rundll32.exe");
         ShellExecuteW(nullptr, L"open", rundllPath.c_str(),
             L"shell32.dll,Control_RunDLL joy.cpl",
@@ -178,7 +223,7 @@ void ControllerOverrideManager::OpenControllerControlPanel() const
 
 bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
 {
-    // No device / keyboard / no DI – nothing to do
+    // No device / keyboard / no DI - nothing to do
     if (guid == GUID_NULL || guid == GUID_SysKeyboard || !orig_DirectInput8Create)
         return false;
 
@@ -204,7 +249,7 @@ bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
 
     if (FAILED(hr))
     {
-        // Optional: fallback – open the global Game Controllers dialog
+        // Optional: fallback - open the global Game Controllers dialog
         OpenControllerControlPanel();
         return false;
     }
@@ -289,6 +334,8 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 
 bool ControllerOverrideManager::CollectDevices()
 {
+        m_steamInputLikely = IsProbablySteamInputActive();
+
         std::vector<ControllerDeviceInfo> directInputDevices;
         bool diSuccess = TryEnumerateDevicesW(directInputDevices);
         if (!diSuccess)
@@ -316,6 +363,26 @@ bool ControllerOverrideManager::CollectDevices()
         }
 
         m_devices.swap(devices);
+
+        bool anyListedGamepad = false;
+        bool anyNonVirtualPad = false;
+        for (const auto& device : m_devices)
+        {
+                if (device.isKeyboard)
+                {
+                        continue;
+                }
+
+                anyListedGamepad = true;
+                if (!IsLikelyVirtualDevice(device))
+                {
+                        anyNonVirtualPad = true;
+                        break;
+                }
+        }
+
+        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && !anyNonVirtualPad;
+
         return diSuccess || !winmmDevices.empty();
 }
 

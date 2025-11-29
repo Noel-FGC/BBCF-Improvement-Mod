@@ -28,6 +28,8 @@ public:
 
         const std::vector<ControllerDeviceInfo>& GetDevices() const;
 
+        bool IsSteamInputLikelyActive() const { return m_steamInputLikely; }
+
         void RefreshDevices();
         void TickAutoRefresh();
 
@@ -58,4 +60,5 @@ private:
         bool m_overrideEnabled = false;
         ULONGLONG m_lastRefresh = 0;
         size_t m_lastDeviceHash = 0;
+        bool m_steamInputLikely = false;
 };
