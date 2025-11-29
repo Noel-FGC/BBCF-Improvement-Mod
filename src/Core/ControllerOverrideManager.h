@@ -33,6 +33,7 @@ public:
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& devices) const;
 
         void OpenControllerControlPanel() const;
+        bool OpenDeviceProperties(const GUID& guid) const;
 
 private:
         ControllerOverrideManager();

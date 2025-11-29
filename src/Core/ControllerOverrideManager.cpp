@@ -123,6 +123,32 @@ void ControllerOverrideManager::OpenControllerControlPanel() const
         ShellExecuteW(nullptr, L"open", L"rundll32.exe", L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
 }
 
+bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
+{
+        if (guid == GUID_NULL || guid == GUID_SysKeyboard || !orig_DirectInput8Create)
+        {
+                return false;
+        }
+
+        IDirectInput8W* dinput = nullptr;
+        if (FAILED(orig_DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W, (LPVOID*)&dinput, nullptr)))
+        {
+                return false;
+        }
+
+        IDirectInputDevice8W* device = nullptr;
+        HRESULT result = dinput->CreateDevice(guid, &device, nullptr);
+
+        if (SUCCEEDED(result) && device)
+        {
+                result = device->RunControlPanel(nullptr, 0);
+                device->Release();
+        }
+
+        dinput->Release();
+        return SUCCEEDED(result);
+}
+
 template <typename T>
 void ControllerOverrideManager::ApplyOrderingImpl(std::vector<T>& devices) const
 {
@@ -246,7 +272,7 @@ bool ControllerOverrideManager::TryEnumerateDevicesA()
                 return DIENUM_CONTINUE;
         };
 
-        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY);
+        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
         dinput->Release();
 
         if (FAILED(enumResult))
@@ -283,7 +309,7 @@ bool ControllerOverrideManager::TryEnumerateDevicesW()
                 return DIENUM_CONTINUE;
         };
 
-        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY);
+        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
         dinput->Release();
 
         if (FAILED(enumResult))

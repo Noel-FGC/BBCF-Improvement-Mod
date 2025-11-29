@@ -476,12 +476,14 @@ void MainWindow::DrawControllerSettingSection() const {
         {
                 auto renderPlayerSelector = [&](const char* label, int playerIndex) {
                         GUID selection = controllerManager.GetPlayerSelection(playerIndex);
+                        const ControllerDeviceInfo* selectedInfo = nullptr;
                         std::string preview = devices.front().name;
                         for (const auto& device : devices)
                         {
                                 if (IsEqualGUID(device.guid, selection))
                                 {
                                         preview = device.name;
+                                        selectedInfo = &device;
                                         break;
                                 }
                         }
@@ -494,6 +496,8 @@ void MainWindow::DrawControllerSettingSection() const {
                                         if (ImGui::Selectable(device.name.c_str(), selected))
                                         {
                                                 controllerManager.SetPlayerSelection(playerIndex, device.guid);
+                                                selection = device.guid;
+                                                selectedInfo = &device;
                                         }
 
                                         if (selected)
@@ -503,6 +507,26 @@ void MainWindow::DrawControllerSettingSection() const {
                                 }
 
                                 ImGui::EndCombo();
+                        }
+
+                        bool disableTest = (selectedInfo && selectedInfo->isKeyboard) || disableOverrideUi;
+                        if (disableTest)
+                        {
+                                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                        }
+
+                        ImGui::SameLine();
+                        std::string testLabel = std::string("Test##player") + std::to_string(playerIndex + 1);
+                        if (ImGui::Button(testLabel.c_str()))
+                        {
+                                controllerManager.OpenDeviceProperties(selection);
+                        }
+
+                        if (disableTest)
+                        {
+                                ImGui::PopStyleVar();
+                                ImGui::PopItemFlag();
                         }
                 };
 
@@ -516,12 +540,25 @@ void MainWindow::DrawControllerSettingSection() const {
         }
 
         ImGui::HorizontalSpacing();
+        if (disableOverrideUi)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+
         if (ImGui::Button("Refresh controllers"))
         {
                 controllerManager.RefreshDevices();
         }
+
+        if (disableOverrideUi)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
         ImGui::SameLine();
-        if (ImGui::Button("Test"))
+        if (ImGui::Button("Joy.cpl"))
         {
                 controllerManager.OpenControllerControlPanel();
         }
