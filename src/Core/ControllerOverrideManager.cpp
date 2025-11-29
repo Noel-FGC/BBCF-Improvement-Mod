@@ -289,48 +289,47 @@ bool ControllerOverrideManager::CollectDevices()
         std::vector<ControllerDeviceInfo> devices;
         devices.push_back({ GUID_SysKeyboard, "Keyboard", true, false, WINMM_INVALID_ID });
 
-        std::vector<ControllerDeviceInfo> directInputDevices;
-        bool success = TryEnumerateDevicesA(directInputDevices);
-
-        if (!success)
-        {
-                success = TryEnumerateDevicesW(directInputDevices);
-        }
-
         std::vector<ControllerDeviceInfo> winmmDevices;
         TryEnumerateWinmmDevices(winmmDevices);
 
-        std::vector<bool> directInputMatched(directInputDevices.size(), false);
+        std::vector<ControllerDeviceInfo> directInputDevices;
+        bool diSuccess = TryEnumerateDevicesA(directInputDevices);
 
-        for (const auto& device : winmmDevices)
+        if (!diSuccess)
         {
-                ControllerDeviceInfo winmmEntry = device;
-                for (size_t i = 0; i < directInputDevices.size(); ++i)
-                {
-                        if (directInputMatched[i])
-                                continue;
-
-                        if (NamesEqualIgnoreCase(device.name, directInputDevices[i].name))
-                        {
-                                winmmEntry.guid = directInputDevices[i].guid;
-                                directInputMatched[i] = true;
-                                break;
-                        }
-                }
-
-                devices.push_back(winmmEntry);
+                diSuccess = TryEnumerateDevicesW(directInputDevices);
         }
 
-        for (size_t i = 0; i < directInputDevices.size(); ++i)
+        std::vector<bool> directInputMatched(directInputDevices.size(), false);
+
+        if (!winmmDevices.empty())
         {
-                if (!directInputMatched[i])
+                for (const auto& device : winmmDevices)
                 {
-                        devices.push_back(directInputDevices[i]);
+                        ControllerDeviceInfo winmmEntry = device;
+                        for (size_t i = 0; i < directInputDevices.size(); ++i)
+                        {
+                                if (directInputMatched[i])
+                                        continue;
+
+                                if (NamesEqualIgnoreCase(device.name, directInputDevices[i].name))
+                                {
+                                        winmmEntry.guid = directInputDevices[i].guid;
+                                        directInputMatched[i] = true;
+                                        break;
+                                }
+                        }
+
+                        devices.push_back(winmmEntry);
                 }
+        }
+        else
+        {
+                devices.insert(devices.end(), directInputDevices.begin(), directInputDevices.end());
         }
 
         m_devices.swap(devices);
-        return success || !winmmDevices.empty();
+        return (!winmmDevices.empty()) || diSuccess;
 }
 
 bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDeviceInfo>& outDevices)
