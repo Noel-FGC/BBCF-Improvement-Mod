@@ -160,8 +160,8 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
-        std::wstring controlPath = GetPreferredSystemExecutable(L"control.exe");
-        ShellExecuteW(nullptr, L"open", controlPath.c_str(), L"joy.cpl", nullptr, SW_SHOWNORMAL);
+        std::wstring rundllPath = GetPreferredSystemExecutable(L"rundll32.exe");
+        ShellExecuteW(nullptr, L"open", rundllPath.c_str(), L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
 }
 
 bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
@@ -375,6 +375,15 @@ void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerD
                 if (joyGetDevCapsW(deviceId, &caps, sizeof(caps)) != JOYERR_NOERROR)
                 {
                         continue;
+                }
+
+                JOYINFOEX info{};
+                info.dwSize = sizeof(info);
+                info.dwFlags = JOY_RETURNALL;
+
+                if (joyGetPosEx(deviceId, &info) != JOYERR_NOERROR)
+                {
+                        continue; // Filter out unplugged or placeholder devices
                 }
 
                 ControllerDeviceInfo info{};
