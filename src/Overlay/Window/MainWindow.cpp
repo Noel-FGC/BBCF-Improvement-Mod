@@ -17,6 +17,8 @@
 #include "Overlay/Widget/GameModeSelectWidget.h"
 #include "Overlay/Widget/StageSelectWidget.h"
 
+#include "imgui_internal.h"
+
 #include <sstream>
 
 MainWindow::MainWindow(const std::string& windowTitle, bool windowClosable, WindowContainer& windowContainer, ImGuiWindowFlags windowFlags)
