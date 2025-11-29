@@ -5,6 +5,7 @@
 #include <Shellapi.h>
 #include <dinput.h>
 #include <mmsystem.h>
+#include <joystickapi.h>
 
 #include <algorithm>
 #include <cctype>
@@ -377,22 +378,22 @@ void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerD
                         continue;
                 }
 
-                JOYINFOEX info{};
-                info.dwSize = sizeof(info);
-                info.dwFlags = JOY_RETURNALL;
+                JOYINFOEX state{};
+                state.dwSize = sizeof(state);
+                state.dwFlags = JOY_RETURNALL;
 
-                if (joyGetPosEx(deviceId, &info) != JOYERR_NOERROR)
+                if (joyGetPosEx(deviceId, &state) != JOYERR_NOERROR)
                 {
                         continue; // Filter out unplugged or placeholder devices
                 }
 
-                ControllerDeviceInfo info{};
-                info.guid = CreateWinmmGuid(deviceId);
-                info.name = WideToUtf8(caps.szPname);
-                info.isKeyboard = false;
-                info.isWinmmDevice = true;
-                info.winmmId = deviceId;
-                outDevices.push_back(info);
+                ControllerDeviceInfo deviceInfo{};
+                deviceInfo.guid = CreateWinmmGuid(deviceId);
+                deviceInfo.name = WideToUtf8(caps.szPname);
+                deviceInfo.isKeyboard = false;
+                deviceInfo.isWinmmDevice = true;
+                deviceInfo.winmmId = deviceId;
+                outDevices.push_back(deviceInfo);
         }
 }
 
