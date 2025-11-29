@@ -289,7 +289,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <AdditionalDependencies>comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dinput8.lib;dxguid.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>export/dinput8.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -321,7 +321,7 @@
       <ModuleDefinitionFile>export/dinput8.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <AdditionalDependencies>comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dinput8.lib;dxguid.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
