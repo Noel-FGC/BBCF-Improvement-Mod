@@ -460,7 +460,10 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Choose which connected controller or the keyboard should be Player 1 and Player 2. Use Refresh when devices change.");
 
-        const auto& devices = controllerManager.GetDevices();
+        if (!overrideEnabled)
+        {
+                return;
+        }
 
         const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
         if (steamInputLikely)
@@ -468,18 +471,13 @@ void MainWindow::DrawControllerSettingSection() const {
                 ImGui::HorizontalSpacing();
                 ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
                         "Steam Input appears to be active for this game.\n"
-                        "Controller list and device testing will only show Steam's virtual pad.\n"
-                        "Disable Steam Input for BlazBlue Centralfiction in Steam's per-game Controller settings\n"
-                        "to view and configure physical controllers from this menu.");
+                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
+                        "Other controller override options are hidden while Steam Input is enabled.");
                 ImGui::VerticalSpacing(5);
+                return;
         }
 
-        const bool disableOverrideUi = !overrideEnabled || steamInputLikely;
-        if (disableOverrideUi)
-        {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
+        const auto& devices = controllerManager.GetDevices();
         if (devices.empty())
         {
                 ImGui::TextDisabled("No input devices detected.");
@@ -521,7 +519,7 @@ void MainWindow::DrawControllerSettingSection() const {
                                 ImGui::EndCombo();
                         }
 
-                        bool disableTest = (selectedInfo && selectedInfo->isKeyboard) || disableOverrideUi;
+                        bool disableTest = (selectedInfo && selectedInfo->isKeyboard);
                         if (disableTest)
                         {
                                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -545,28 +543,11 @@ void MainWindow::DrawControllerSettingSection() const {
                 renderPlayerSelector("Player 1 Controller", 0);
                 renderPlayerSelector("Player 2 Controller", 1);
         }
-        if (disableOverrideUi)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
-        }
 
         ImGui::HorizontalSpacing();
-        if (disableOverrideUi)
-        {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
-
         if (ImGui::Button("Refresh controllers"))
         {
                 controllerManager.RefreshDevices();
-        }
-
-        if (disableOverrideUi)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
         }
 
         ImGui::SameLine();
