@@ -120,7 +120,7 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
-        ShellExecute(nullptr, L"open", L"rundll32.exe", L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
+        ShellExecute(nullptr, TEXT("open"), TEXT("rundll32.exe"), TEXT("shell32.dll,Control_RunDLL joy.cpl"), nullptr, SW_SHOWNORMAL);
 }
 
 template <typename T>
