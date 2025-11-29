@@ -11,6 +11,8 @@ struct ControllerDeviceInfo
         GUID guid = GUID_NULL;
         std::string name;
         bool isKeyboard = false;
+        bool isWinmmDevice = false;
+        UINT winmmId = static_cast<UINT>(-1);
 };
 
 class ControllerOverrideManager
@@ -43,8 +45,11 @@ private:
 
         void EnsureSelectionsValid();
         bool CollectDevices();
-        bool TryEnumerateDevicesA();
-        bool TryEnumerateDevicesW();
+        bool TryEnumerateDevicesA(std::vector<ControllerDeviceInfo>& outDevices);
+        bool TryEnumerateDevicesW(std::vector<ControllerDeviceInfo>& outDevices);
+        void TryEnumerateWinmmDevices(std::vector<ControllerDeviceInfo>& outDevices) const;
+        static GUID CreateWinmmGuid(UINT winmmId);
+        static bool NamesEqualIgnoreCase(const std::string& lhs, const std::string& rhs);
 
         static std::string WideToUtf8(const std::wstring& value);
 

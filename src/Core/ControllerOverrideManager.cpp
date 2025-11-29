@@ -4,19 +4,24 @@
 
 #include <Shellapi.h>
 #include <dinput.h>
+#include <mmsystem.h>
 
 #include <algorithm>
+#include <cctype>
 #include <numeric>
 
 namespace
 {
         constexpr ULONGLONG DEVICE_REFRESH_INTERVAL_MS = 1000;
+        constexpr UINT WINMM_INVALID_ID = static_cast<UINT>(-1);
 
         size_t HashDevices(const std::vector<ControllerDeviceInfo>& devices)
         {
                 return std::accumulate(devices.begin(), devices.end(), static_cast<size_t>(0), [](size_t acc, const ControllerDeviceInfo& info) {
                         acc ^= std::hash<std::string>{}(info.name) + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2);
                         acc ^= info.isKeyboard ? 0xfeedfaceULL : 0; // differentiate keyboard entries
+                        acc ^= info.isWinmmDevice ? 0x1a2b3c4dULL : 0;
+                        acc ^= static_cast<size_t>(info.winmmId) << 32;
                         acc ^= std::hash<unsigned long>{}(info.guid.Data1);
                         return acc;
                 });
@@ -120,11 +125,29 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
-        ShellExecuteW(nullptr, L"open", L"rundll32.exe", L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
+        ShellExecuteW(nullptr, L"open", L"control.exe", L"joy.cpl", nullptr, SW_SHOWNORMAL);
 }
 
 bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
 {
+        auto deviceIt = std::find_if(m_devices.begin(), m_devices.end(), [&](const ControllerDeviceInfo& info) {
+                return IsEqualGUID(info.guid, guid);
+        });
+
+        if (deviceIt == m_devices.end())
+        {
+                return false;
+        }
+
+        const ControllerDeviceInfo& deviceInfo = *deviceIt;
+
+        if (deviceInfo.isWinmmDevice && deviceInfo.winmmId != WINMM_INVALID_ID)
+        {
+                std::wstring args = L"shell32.dll,Control_RunDLL joy.cpl,," + std::to_wstring(deviceInfo.winmmId);
+                HINSTANCE result = ShellExecuteW(nullptr, L"open", L"rundll32.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
+                return reinterpret_cast<UINT_PTR>(result) > 32;
+        }
+
         if (guid == GUID_NULL || guid == GUID_SysKeyboard || !orig_DirectInput8Create)
         {
                 return false;
@@ -226,28 +249,53 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 bool ControllerOverrideManager::CollectDevices()
 {
         std::vector<ControllerDeviceInfo> devices;
-        devices.push_back({ GUID_SysKeyboard, "Keyboard", true });
+        devices.push_back({ GUID_SysKeyboard, "Keyboard", true, false, WINMM_INVALID_ID });
 
-        bool success = TryEnumerateDevicesA();
-
-        if (!success)
-        {
-                success = TryEnumerateDevicesW();
-        }
+        std::vector<ControllerDeviceInfo> directInputDevices;
+        bool success = TryEnumerateDevicesA(directInputDevices);
 
         if (!success)
         {
-                m_devices = devices;
-                return false;
+                success = TryEnumerateDevicesW(directInputDevices);
         }
 
-        // TryEnumerateDevices* store results into m_devices temporarily. Move them into devices list.
-        devices.insert(devices.end(), m_devices.begin(), m_devices.end());
+        std::vector<ControllerDeviceInfo> winmmDevices;
+        TryEnumerateWinmmDevices(winmmDevices);
+
+        std::vector<bool> directInputMatched(directInputDevices.size(), false);
+
+        for (const auto& device : winmmDevices)
+        {
+                ControllerDeviceInfo winmmEntry = device;
+                for (size_t i = 0; i < directInputDevices.size(); ++i)
+                {
+                        if (directInputMatched[i])
+                                continue;
+
+                        if (NamesEqualIgnoreCase(device.name, directInputDevices[i].name))
+                        {
+                                winmmEntry.guid = directInputDevices[i].guid;
+                                directInputMatched[i] = true;
+                                break;
+                        }
+                }
+
+                devices.push_back(winmmEntry);
+        }
+
+        for (size_t i = 0; i < directInputDevices.size(); ++i)
+        {
+                if (!directInputMatched[i])
+                {
+                        devices.push_back(directInputDevices[i]);
+                }
+        }
+
         m_devices.swap(devices);
-        return true;
+        return success || !winmmDevices.empty();
 }
 
-bool ControllerOverrideManager::TryEnumerateDevicesA()
+bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDeviceInfo>& outDevices)
 {
         if (!orig_DirectInput8Create)
         {
@@ -260,8 +308,6 @@ bool ControllerOverrideManager::TryEnumerateDevicesA()
                 return false;
         }
 
-        std::vector<ControllerDeviceInfo> devices;
-
         auto callback = [](const DIDEVICEINSTANCEA* inst, VOID* ref) -> BOOL {
                 auto* deviceList = reinterpret_cast<std::vector<ControllerDeviceInfo>*>(ref);
                 ControllerDeviceInfo info{};
@@ -272,19 +318,70 @@ bool ControllerOverrideManager::TryEnumerateDevicesA()
                 return DIENUM_CONTINUE;
         };
 
-        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
+        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &outDevices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
         dinput->Release();
 
         if (FAILED(enumResult))
         {
                 return false;
         }
-
-        m_devices.swap(devices);
         return true;
 }
 
-bool ControllerOverrideManager::TryEnumerateDevicesW()
+void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerDeviceInfo>& outDevices) const
+{
+        UINT deviceCount = joyGetNumDevs();
+
+        for (UINT deviceId = 0; deviceId < deviceCount; ++deviceId)
+        {
+                JOYCAPSW caps{};
+                if (joyGetDevCapsW(deviceId, &caps, sizeof(caps)) != JOYERR_NOERROR)
+                {
+                        continue;
+                }
+
+                ControllerDeviceInfo info{};
+                info.guid = CreateWinmmGuid(deviceId);
+                info.name = WideToUtf8(caps.szPname);
+                info.isKeyboard = false;
+                info.isWinmmDevice = true;
+                info.winmmId = deviceId;
+                outDevices.push_back(info);
+        }
+}
+
+GUID ControllerOverrideManager::CreateWinmmGuid(UINT winmmId)
+{
+        GUID guid{};
+        guid.Data1 = 0x77696E6D; // "winm"
+        guid.Data2 = 0x6D64;     // "md"
+        guid.Data3 = 0x6576;     // "ev"
+        guid.Data4[0] = static_cast<unsigned char>((winmmId >> 24) & 0xFF);
+        guid.Data4[1] = static_cast<unsigned char>((winmmId >> 16) & 0xFF);
+        guid.Data4[2] = static_cast<unsigned char>((winmmId >> 8) & 0xFF);
+        guid.Data4[3] = static_cast<unsigned char>(winmmId & 0xFF);
+        return guid;
+}
+
+bool ControllerOverrideManager::NamesEqualIgnoreCase(const std::string& lhs, const std::string& rhs)
+{
+        if (lhs.size() != rhs.size())
+        {
+                return false;
+        }
+
+        for (size_t i = 0; i < lhs.size(); ++i)
+        {
+                if (std::tolower(static_cast<unsigned char>(lhs[i])) != std::tolower(static_cast<unsigned char>(rhs[i])))
+                {
+                        return false;
+                }
+        }
+
+        return true;
+}
+
+bool ControllerOverrideManager::TryEnumerateDevicesW(std::vector<ControllerDeviceInfo>& outDevices)
 {
         if (!orig_DirectInput8Create)
         {
@@ -297,8 +394,6 @@ bool ControllerOverrideManager::TryEnumerateDevicesW()
                 return false;
         }
 
-        std::vector<ControllerDeviceInfo> devices;
-
         auto callback = [](const DIDEVICEINSTANCEW* inst, VOID* ref) -> BOOL {
                 auto* deviceList = reinterpret_cast<std::vector<ControllerDeviceInfo>*>(ref);
                 ControllerDeviceInfo info{};
@@ -309,15 +404,13 @@ bool ControllerOverrideManager::TryEnumerateDevicesW()
                 return DIENUM_CONTINUE;
         };
 
-        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &devices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
+        HRESULT enumResult = dinput->EnumDevices(DI8DEVCLASS_GAMECTRL, callback, &outDevices, DIEDFL_ATTACHEDONLY | DIEDFL_INCLUDEALIASES);
         dinput->Release();
 
         if (FAILED(enumResult))
         {
                 return false;
         }
-
-        m_devices.swap(devices);
         return true;
 }
 
