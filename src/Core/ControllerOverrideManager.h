@@ -36,6 +36,8 @@ public:
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const;
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& devices) const;
 
+        bool IsDeviceAllowed(const GUID& guid) const;
+
         void OpenControllerControlPanel() const;
         bool OpenDeviceProperties(const GUID& guid) const;
 
