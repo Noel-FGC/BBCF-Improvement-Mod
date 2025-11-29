@@ -460,7 +460,12 @@ void MainWindow::DrawControllerSettingSection() const {
 
         const auto& devices = controllerManager.GetDevices();
 
-        ImGui::BeginDisabled(!overrideEnabled);
+        const bool disableOverrideUi = !overrideEnabled;
+        if (disableOverrideUi)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
         if (devices.empty())
         {
                 ImGui::TextDisabled("No input devices detected.");
@@ -502,7 +507,11 @@ void MainWindow::DrawControllerSettingSection() const {
                 renderPlayerSelector("Player 1 Controller", 0);
                 renderPlayerSelector("Player 2 Controller", 1);
         }
-        ImGui::EndDisabled();
+        if (disableOverrideUi)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
 
         ImGui::HorizontalSpacing();
         if (ImGui::Button("Refresh controllers"))

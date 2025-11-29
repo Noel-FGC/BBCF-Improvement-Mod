@@ -120,7 +120,7 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
-        ShellExecute(nullptr, TEXT("open"), TEXT("rundll32.exe"), TEXT("shell32.dll,Control_RunDLL joy.cpl"), nullptr, SW_SHOWNORMAL);
+        ShellExecuteW(nullptr, L"open", L"rundll32.exe", L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
 }
 
 template <typename T>
@@ -306,7 +306,7 @@ std::string ControllerOverrideManager::WideToUtf8(const std::wstring& value)
                 return {};
 
         std::string output(static_cast<size_t>(required), '\0');
-        WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, output.data(), required, nullptr, nullptr);
+        WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, &output[0], required, nullptr, nullptr);
         // Remove the trailing null the API writes
         if (!output.empty() && output.back() == '\0')
         {
