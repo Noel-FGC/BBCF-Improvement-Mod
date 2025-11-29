@@ -2,6 +2,9 @@
 #include "interfaces.h"
 #include "logger.h"
 #include "Settings.h"
+#include "dllmain.h"
+#include "ControllerOverrideManager.h"
+#include "DirectInputWrapper.h"
 
 #include "Hooks/hooks_detours.h"
 #include "Overlay/WindowManager.h"
@@ -9,20 +12,30 @@
 #include <Windows.h>
 
 HMODULE hOriginalDinput;
-
-typedef HRESULT(WINAPI *DirectInput8Create_t)(HINSTANCE inst_handle, DWORD version, const IID& r_iid, LPVOID* out_wrapper, LPUNKNOWN p_unk);
 DirectInput8Create_t orig_DirectInput8Create;
 
 // Exported function
 HRESULT WINAPI DirectInput8Create(HINSTANCE hinstHandle, DWORD version, const IID& r_iid, LPVOID* outWrapper, LPUNKNOWN pUnk)
 {
-	LOG(1, "DirectInput8Create\n");
+        LOG(1, "DirectInput8Create\n");
 
-	HRESULT ret = orig_DirectInput8Create(hinstHandle, version, r_iid, outWrapper, pUnk);
+        HRESULT ret = orig_DirectInput8Create(hinstHandle, version, r_iid, outWrapper, pUnk);
 
-	LOG(1, "DirectInput8Create result: %d\n", ret);
+        if (SUCCEEDED(ret) && outWrapper)
+        {
+                if (r_iid == IID_IDirectInput8A)
+                {
+                        *outWrapper = new DirectInput8AWrapper(static_cast<IDirectInput8A*>(*outWrapper));
+                }
+                else if (r_iid == IID_IDirectInput8W)
+                {
+                        *outWrapper = new DirectInput8WWrapper(static_cast<IDirectInput8W*>(*outWrapper));
+                }
+        }
 
-	return ret;
+        LOG(1, "DirectInput8Create result: %d\n", ret);
+
+        return ret;
 }
 
 void CreateCustomDirectories()

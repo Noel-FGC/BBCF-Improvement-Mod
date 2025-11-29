@@ -9,12 +9,15 @@
 #include "Core/Settings.h"
 #include "Core/info.h"
 #include "Core/interfaces.h"
+#include "Core/ControllerOverrideManager.h"
 #include "Game/gamestates.h"
 #include "Core/utils.h"
 #include "Overlay/imgui_utils.h"
 #include "Overlay/Widget/ActiveGameModeWidget.h"
 #include "Overlay/Widget/GameModeSelectWidget.h"
 #include "Overlay/Widget/StageSelectWidget.h"
+
+#include "imgui_internal.h"
 
 #include <sstream>
 
@@ -426,25 +429,139 @@ void MainWindow::DrawGameplaySettingSection() const
 	}
 }
 void MainWindow::DrawControllerSettingSection() const {
-	if (!ImGui::CollapsingHeader("Controller Settings"))
-		return;
-	static bool controller_position_swapped = false;
+        if (!ImGui::CollapsingHeader("Controller Settings"))
+                return;
+        static bool controller_position_swapped = false;
+        auto& controllerManager = ControllerOverrideManager::GetInstance();
+        controllerManager.TickAutoRefresh();
 
-	if (ImGui::Checkbox("Keyboard + Controller/ Swap controller pos", &controller_position_swapped)) {
-		//make the battle_key_controller into a proper struck later
-		char*** battle_key_controller = (char***)(GetBbcfBaseAdress() + 0x8929c8);
-		char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);
-		char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);
-		char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);
-		char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);
-		char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);
-		char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);
-		std::swap(*menu_control_p1, *menu_control_p2);
-		std::swap(*char_control_p1, *char_control_p2);
-		std::swap(*unknown_p1, *unknown_p2);
-	}
-	ImGui::SameLine();
-	ImGui::ShowHelpMarker("Swap the p1 and p2 controller positions. This can be used to play locally with a single controller and a keyboard as this will force the single controller to be in p2 position while the keyboard is always p1.");
+        if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
+                //make the battle_key_controller into a proper struck later
+                char*** battle_key_controller = (char***)(GetBbcfBaseAdress() + 0x8929c8);
+                char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);
+                char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);
+                char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);
+                char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);
+                char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);
+                char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);
+                std::swap(*menu_control_p1, *menu_control_p2);
+                std::swap(*char_control_p1, *char_control_p2);
+                std::swap(*unknown_p1, *unknown_p2);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.");
+
+        ImGui::VerticalSpacing(5);
+
+        bool overrideEnabled = controllerManager.IsOverrideEnabled();
+        if (ImGui::Checkbox("Local Controller Override", &overrideEnabled)) {
+                controllerManager.SetOverrideEnabled(overrideEnabled);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Choose which connected controller or the keyboard should be Player 1 and Player 2. Use Refresh when devices change.");
+
+        const auto& devices = controllerManager.GetDevices();
+
+        const bool disableOverrideUi = !overrideEnabled;
+        if (disableOverrideUi)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (devices.empty())
+        {
+                ImGui::TextDisabled("No input devices detected.");
+        }
+        else
+        {
+                auto renderPlayerSelector = [&](const char* label, int playerIndex) {
+                        GUID selection = controllerManager.GetPlayerSelection(playerIndex);
+                        const ControllerDeviceInfo* selectedInfo = nullptr;
+                        std::string preview = devices.front().name;
+                        for (const auto& device : devices)
+                        {
+                                if (IsEqualGUID(device.guid, selection))
+                                {
+                                        preview = device.name;
+                                        selectedInfo = &device;
+                                        break;
+                                }
+                        }
+
+                        if (ImGui::BeginCombo(label, preview.c_str()))
+                        {
+                                for (const auto& device : devices)
+                                {
+                                        bool selected = IsEqualGUID(device.guid, selection);
+                                        if (ImGui::Selectable(device.name.c_str(), selected))
+                                        {
+                                                controllerManager.SetPlayerSelection(playerIndex, device.guid);
+                                                selection = device.guid;
+                                                selectedInfo = &device;
+                                        }
+
+                                        if (selected)
+                                        {
+                                                ImGui::SetItemDefaultFocus();
+                                        }
+                                }
+
+                                ImGui::EndCombo();
+                        }
+
+                        bool disableTest = (selectedInfo && selectedInfo->isKeyboard) || disableOverrideUi;
+                        if (disableTest)
+                        {
+                                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                        }
+
+                        ImGui::SameLine();
+                        std::string testLabel = std::string("Test##player") + std::to_string(playerIndex + 1);
+                        if (ImGui::Button(testLabel.c_str()))
+                        {
+                                controllerManager.OpenDeviceProperties(selection);
+                        }
+
+                        if (disableTest)
+                        {
+                                ImGui::PopStyleVar();
+                                ImGui::PopItemFlag();
+                        }
+                };
+
+                renderPlayerSelector("Player 1 Controller", 0);
+                renderPlayerSelector("Player 2 Controller", 1);
+        }
+        if (disableOverrideUi)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::HorizontalSpacing();
+        if (disableOverrideUi)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+
+        if (ImGui::Button("Refresh controllers"))
+        {
+                controllerManager.RefreshDevices();
+        }
+
+        if (disableOverrideUi)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Joy.cpl"))
+        {
+                controllerManager.OpenControllerControlPanel();
+        }
 }
 void MainWindow::DrawLinkButtons() const
 {
