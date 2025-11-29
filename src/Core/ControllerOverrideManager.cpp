@@ -161,54 +161,57 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
+    // Let the shell resolve joy.cpl the same way Win+R or Search does.
+    HINSTANCE res = ShellExecuteW(nullptr, L"open", L"joy.cpl", nullptr, nullptr, SW_SHOWNORMAL);
+
+    // Optional: fallback if this fails (res <= 32)
+    if ((UINT_PTR)res <= 32)
+    {
+        // Old-style fallback – rarely needed, but safe to keep
         std::wstring rundllPath = GetPreferredSystemExecutable(L"rundll32.exe");
-        ShellExecuteW(nullptr, L"open", rundllPath.c_str(), L"shell32.dll,Control_RunDLL joy.cpl", nullptr, SW_SHOWNORMAL);
+        ShellExecuteW(nullptr, L"open", rundllPath.c_str(),
+            L"shell32.dll,Control_RunDLL joy.cpl",
+            nullptr, SW_SHOWNORMAL);
+    }
 }
+
 
 bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
 {
-        auto deviceIt = std::find_if(m_devices.begin(), m_devices.end(), [&](const ControllerDeviceInfo& info) {
-                return IsEqualGUID(info.guid, guid);
-        });
+    // No device / keyboard / no DI – nothing to do
+    if (guid == GUID_NULL || guid == GUID_SysKeyboard || !orig_DirectInput8Create)
+        return false;
 
-        if (deviceIt == m_devices.end())
-        {
-                return false;
-        }
+    IDirectInput8W* dinput = nullptr;
+    HRESULT hr = orig_DirectInput8Create(GetModuleHandle(nullptr),
+        DIRECTINPUT_VERSION,
+        IID_IDirectInput8W,
+        (LPVOID*)&dinput,
+        nullptr);
+    if (FAILED(hr) || !dinput)
+        return false;
 
-        const ControllerDeviceInfo& deviceInfo = *deviceIt;
+    IDirectInputDevice8W* device = nullptr;
+    hr = dinput->CreateDevice(guid, &device, nullptr);
 
-        if (deviceInfo.isWinmmDevice && deviceInfo.winmmId != WINMM_INVALID_ID)
-        {
-                std::wstring args = L"shell32.dll,Control_RunDLL joy.cpl,," + std::to_wstring(deviceInfo.winmmId);
-                std::wstring rundllPath = GetPreferredSystemExecutable(L"rundll32.exe");
-                HINSTANCE result = ShellExecuteW(nullptr, L"open", rundllPath.c_str(), args.c_str(), nullptr, SW_SHOWNORMAL);
-                return reinterpret_cast<UINT_PTR>(result) > 32;
-        }
+    if (SUCCEEDED(hr) && device)
+    {
+        hr = device->RunControlPanel(nullptr, 0);
+        device->Release();
+    }
 
-        if (guid == GUID_NULL || guid == GUID_SysKeyboard || !orig_DirectInput8Create)
-        {
-                return false;
-        }
+    dinput->Release();
 
-        IDirectInput8W* dinput = nullptr;
-        if (FAILED(orig_DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W, (LPVOID*)&dinput, nullptr)))
-        {
-                return false;
-        }
+    if (FAILED(hr))
+    {
+        // Optional: fallback – open the global Game Controllers dialog
+        OpenControllerControlPanel();
+        return false;
+    }
 
-        IDirectInputDevice8W* device = nullptr;
-        HRESULT result = dinput->CreateDevice(guid, &device, nullptr);
-
-        if (SUCCEEDED(result) && device)
-        {
-                result = device->RunControlPanel(nullptr, 0);
-                device->Release();
-        }
-
-        dinput->Release();
-        return SUCCEEDED(result);
+    return true;
 }
+
 
 template <typename T>
 void ControllerOverrideManager::ApplyOrderingImpl(std::vector<T>& devices) const
@@ -286,50 +289,34 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 
 bool ControllerOverrideManager::CollectDevices()
 {
+        std::vector<ControllerDeviceInfo> directInputDevices;
+        bool diSuccess = TryEnumerateDevicesW(directInputDevices);
+        if (!diSuccess)
+            diSuccess = TryEnumerateDevicesA(directInputDevices);
+
         std::vector<ControllerDeviceInfo> devices;
         devices.push_back({ GUID_SysKeyboard, "Keyboard", true, false, WINMM_INVALID_ID });
 
         std::vector<ControllerDeviceInfo> winmmDevices;
         TryEnumerateWinmmDevices(winmmDevices);
 
-        std::vector<ControllerDeviceInfo> directInputDevices;
-        bool diSuccess = TryEnumerateDevicesA(directInputDevices);
+        // Optional: map WinMM IDs onto DI devices by name
+        auto findWinmmIdByName = [&](const std::string& name) -> UINT {
+            for (const auto& wdev : winmmDevices)
+                if (NamesEqualIgnoreCase(wdev.name, name))
+                    return wdev.winmmId;
+            return WINMM_INVALID_ID;
+            };
 
-        if (!diSuccess)
+        for (auto& diDev : directInputDevices)
         {
-                diSuccess = TryEnumerateDevicesW(directInputDevices);
-        }
-
-        std::vector<bool> directInputMatched(directInputDevices.size(), false);
-
-        if (!winmmDevices.empty())
-        {
-                for (const auto& device : winmmDevices)
-                {
-                        ControllerDeviceInfo winmmEntry = device;
-                        for (size_t i = 0; i < directInputDevices.size(); ++i)
-                        {
-                                if (directInputMatched[i])
-                                        continue;
-
-                                if (NamesEqualIgnoreCase(device.name, directInputDevices[i].name))
-                                {
-                                        winmmEntry.guid = directInputDevices[i].guid;
-                                        directInputMatched[i] = true;
-                                        break;
-                                }
-                        }
-
-                        devices.push_back(winmmEntry);
-                }
-        }
-        else
-        {
-                devices.insert(devices.end(), directInputDevices.begin(), directInputDevices.end());
+            diDev.isWinmmDevice = false; // we're treating DI as primary
+            diDev.winmmId = findWinmmIdByName(diDev.name);
+            devices.push_back(diDev);
         }
 
         m_devices.swap(devices);
-        return (!winmmDevices.empty()) || diSuccess;
+        return diSuccess || !winmmDevices.empty();
 }
 
 bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDeviceInfo>& outDevices)
