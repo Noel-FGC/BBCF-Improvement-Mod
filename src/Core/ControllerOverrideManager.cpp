@@ -15,6 +15,41 @@ namespace
         constexpr ULONGLONG DEVICE_REFRESH_INTERVAL_MS = 1000;
         constexpr UINT WINMM_INVALID_ID = static_cast<UINT>(-1);
 
+        std::wstring GetPreferredSystemExecutable(const wchar_t* executableName)
+        {
+                wchar_t windowsDir[MAX_PATH] = {};
+                UINT len = GetWindowsDirectoryW(windowsDir, MAX_PATH);
+
+                if (len == 0 || len >= MAX_PATH)
+                {
+                        return std::wstring(executableName);
+                }
+
+                auto buildPath = [&](const wchar_t* subdir) {
+                        std::wstring path(windowsDir, len);
+                        path += L"\\";
+                        path += subdir;
+                        path += L"\\";
+                        path += executableName;
+                        return path;
+                };
+
+                // Prefer the native (64-bit) system executable when running from a 32-bit process.
+                std::wstring sysnativePath = buildPath(L"Sysnative");
+                if (GetFileAttributesW(sysnativePath.c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                        return sysnativePath;
+                }
+
+                std::wstring system32Path = buildPath(L"System32");
+                if (GetFileAttributesW(system32Path.c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                        return system32Path;
+                }
+
+                return std::wstring(executableName);
+        }
+
         size_t HashDevices(const std::vector<ControllerDeviceInfo>& devices)
         {
                 return std::accumulate(devices.begin(), devices.end(), static_cast<size_t>(0), [](size_t acc, const ControllerDeviceInfo& info) {
@@ -125,7 +160,8 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
 
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
-        ShellExecuteW(nullptr, L"open", L"control.exe", L"joy.cpl", nullptr, SW_SHOWNORMAL);
+        std::wstring controlPath = GetPreferredSystemExecutable(L"control.exe");
+        ShellExecuteW(nullptr, L"open", controlPath.c_str(), L"joy.cpl", nullptr, SW_SHOWNORMAL);
 }
 
 bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
@@ -144,7 +180,8 @@ bool ControllerOverrideManager::OpenDeviceProperties(const GUID& guid) const
         if (deviceInfo.isWinmmDevice && deviceInfo.winmmId != WINMM_INVALID_ID)
         {
                 std::wstring args = L"shell32.dll,Control_RunDLL joy.cpl,," + std::to_wstring(deviceInfo.winmmId);
-                HINSTANCE result = ShellExecuteW(nullptr, L"open", L"rundll32.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
+                std::wstring rundllPath = GetPreferredSystemExecutable(L"rundll32.exe");
+                HINSTANCE result = ShellExecuteW(nullptr, L"open", rundllPath.c_str(), args.c_str(), nullptr, SW_SHOWNORMAL);
                 return reinterpret_cast<UINT_PTR>(result) > 32;
         }
 
