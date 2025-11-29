@@ -58,6 +58,8 @@
     <ClCompile Include="src\SteamApiWrapper\steamApiWrappers.cpp" />
     <ClCompile Include="src\Core\interfaces.cpp" />
     <ClCompile Include="src\Core\crashdump.cpp" />
+    <ClCompile Include="src\Core\ControllerOverrideManager.cpp" />
+    <ClCompile Include="src\Core\DirectInputWrapper.cpp" />
     <ClCompile Include="src\Network\NetworkManager.cpp" />
     <ClCompile Include="src\Network\OnlinePaletteManager.cpp" />
     <ClCompile Include="src\Network\RoomManager.cpp" />
@@ -163,6 +165,9 @@
     <ClInclude Include="src\Game\CharData.h" />
     <ClInclude Include="src\Core\interfaces.h" />
     <ClInclude Include="src\Core\crashdump.h" />
+    <ClInclude Include="src\Core\ControllerOverrideManager.h" />
+    <ClInclude Include="src\Core\DirectInputWrapper.h" />
+    <ClInclude Include="src\Core\dllmain.h" />
     <ClInclude Include="src\Network\NetworkManager.h" />
     <ClInclude Include="src\Network\OnlinePaletteManager.h" />
     <ClInclude Include="src\Network\Packet.h" />
