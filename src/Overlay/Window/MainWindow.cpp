@@ -462,7 +462,19 @@ void MainWindow::DrawControllerSettingSection() const {
 
         const auto& devices = controllerManager.GetDevices();
 
-        const bool disableOverrideUi = !overrideEnabled;
+        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
+        if (steamInputLikely)
+        {
+                ImGui::HorizontalSpacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
+                        "Steam Input appears to be active for this game.\n"
+                        "Controller list and device testing will only show Steam's virtual pad.\n"
+                        "Disable Steam Input for BlazBlue Centralfiction in Steam's per-game Controller settings\n"
+                        "to view and configure physical controllers from this menu.");
+                ImGui::VerticalSpacing(5);
+        }
+
+        const bool disableOverrideUi = !overrideEnabled || steamInputLikely;
         if (disableOverrideUi)
         {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
