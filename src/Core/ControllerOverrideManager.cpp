@@ -7,6 +7,7 @@
 #include <mmsystem.h>
 #include <joystickapi.h>
 
+#include <array>
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -76,6 +77,48 @@ namespace
                 return instance.guidInstance;
         }
 
+        bool IsProbablySteamInputActive()
+        {
+                constexpr std::array<const wchar_t*, 3> kSteamEnvVars = {
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT",
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES",
+                        L"SDL_ENABLE_STEAM_CONTROLLERS",
+                };
+
+                for (auto name : kSteamEnvVars)
+                {
+                        if (GetEnvironmentVariableW(name, nullptr, 0) > 0)
+                        {
+                                return true;
+                        }
+                }
+
+                return false;
+        }
+
+        bool IsLikelyVirtualDevice(const ControllerDeviceInfo& info)
+        {
+                if (info.isKeyboard)
+                {
+                        return true;
+                }
+
+                const char* vjoyName = "vJoy Device";
+                if (info.name.size() != strlen(vjoyName))
+                {
+                        return false;
+                }
+
+                for (size_t i = 0; i < info.name.size(); ++i)
+                {
+                        if (std::tolower(static_cast<unsigned char>(info.name[i])) != std::tolower(static_cast<unsigned char>(vjoyName[i])))
+                        {
+                                return false;
+                        }
+                }
+
+                return true;
+        }
 }
 
 ControllerOverrideManager& ControllerOverrideManager::GetInstance()
@@ -327,6 +370,8 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 
 bool ControllerOverrideManager::CollectDevices()
 {
+        m_steamInputLikely = IsProbablySteamInputActive();
+
         std::vector<ControllerDeviceInfo> directInputDevices;
         bool diSuccess = TryEnumerateDevicesW(directInputDevices);
         if (!diSuccess)
@@ -354,6 +399,25 @@ bool ControllerOverrideManager::CollectDevices()
         }
 
         m_devices.swap(devices);
+
+        bool anyListedGamepad = false;
+        bool anyNonVirtualPad = false;
+        for (const auto& device : m_devices)
+        {
+                if (device.isKeyboard)
+                {
+                        continue;
+                }
+
+                anyListedGamepad = true;
+                if (!IsLikelyVirtualDevice(device))
+                {
+                        anyNonVirtualPad = true;
+                        break;
+                }
+        }
+
+        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && !anyNonVirtualPad;
 
         return diSuccess || !winmmDevices.empty();
 }
