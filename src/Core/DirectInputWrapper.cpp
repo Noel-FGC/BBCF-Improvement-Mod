@@ -39,6 +39,11 @@ ULONG STDMETHODCALLTYPE DirectInput8AWrapper::Release()
 
 HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8A* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+        if (!ControllerOverrideManager::GetInstance().IsDeviceAllowed(rguid))
+        {
+                return DIERR_DEVICENOTREG;
+        }
+
         return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
 }
 
@@ -136,6 +141,11 @@ ULONG STDMETHODCALLTYPE DirectInput8WWrapper::Release()
 
 HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8W* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+        if (!ControllerOverrideManager::GetInstance().IsDeviceAllowed(rguid))
+        {
+                return DIERR_DEVICENOTREG;
+        }
+
         return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
 }
 

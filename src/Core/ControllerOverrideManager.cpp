@@ -204,6 +204,24 @@ void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& de
         ApplyOrderingImpl(devices);
 }
 
+bool ControllerOverrideManager::IsDeviceAllowed(const GUID& guid) const
+{
+        if (!m_overrideEnabled)
+        {
+                return true;
+        }
+
+        for (const auto& selection : m_playerSelections)
+        {
+                if (selection != GUID_NULL && IsEqualGUID(selection, guid))
+                {
+                        return true;
+                }
+        }
+
+        return false;
+}
+
 void ControllerOverrideManager::OpenControllerControlPanel() const
 {
     // Let the shell resolve joy.cpl the same way Win+R or Search does.
@@ -271,6 +289,24 @@ void ControllerOverrideManager::ApplyOrderingImpl(std::vector<T>& devices) const
                         return GUID_NULL;
                 return m_playerSelections[idx];
         };
+
+        std::vector<T> filtered;
+        filtered.reserve(devices.size());
+
+        for (const auto& device : devices)
+        {
+                if (IsDeviceAllowed(GetGuidFromInstance(device)))
+                {
+                        filtered.push_back(device);
+                }
+        }
+
+        devices.swap(filtered);
+
+        if (devices.empty())
+        {
+                return;
+        }
 
         std::vector<bool> consumed(devices.size(), false);
         std::vector<T> ordered;
