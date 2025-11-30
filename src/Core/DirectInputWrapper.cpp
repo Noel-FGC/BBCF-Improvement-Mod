@@ -44,7 +44,13 @@ HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::CreateDevice(REFGUID rguid, LPDI
                 return DIERR_DEVICENOTREG;
         }
 
-        return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        HRESULT result = m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        if (SUCCEEDED(result) && lplpDirectInputDevice && *lplpDirectInputDevice)
+        {
+                ControllerOverrideManager::GetInstance().RegisterCreatedDevice(*lplpDirectInputDevice);
+        }
+
+        return result;
 }
 
 HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::EnumDevices(DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
@@ -146,7 +152,13 @@ HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::CreateDevice(REFGUID rguid, LPDI
                 return DIERR_DEVICENOTREG;
         }
 
-        return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        HRESULT result = m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        if (SUCCEEDED(result) && lplpDirectInputDevice && *lplpDirectInputDevice)
+        {
+                ControllerOverrideManager::GetInstance().RegisterCreatedDevice(*lplpDirectInputDevice);
+        }
+
+        return result;
 }
 
 HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::EnumDevices(DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)

@@ -1,11 +1,13 @@
 #include "ControllerOverrideManager.h"
 
 #include "dllmain.h"
+#include "Core/interfaces.h"
 
 #include <Shellapi.h>
 #include <dinput.h>
 #include <mmsystem.h>
 #include <joystickapi.h>
+#include <dbt.h>
 
 #include <array>
 #include <algorithm>
@@ -165,6 +167,13 @@ void ControllerOverrideManager::RefreshDevices()
         m_lastDeviceHash = HashDevices(m_devices);
 }
 
+void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
+{
+        RefreshDevices();
+        BounceTrackedDevices();
+        SendDeviceChangeBroadcast();
+}
+
 void ControllerOverrideManager::TickAutoRefresh()
 {
         if (GetTickCount64() - m_lastRefresh < DEVICE_REFRESH_INTERVAL_MS)
@@ -183,6 +192,76 @@ void ControllerOverrideManager::TickAutoRefresh()
         }
 
         m_lastRefresh = GetTickCount64();
+}
+
+void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8A* device)
+{
+        if (!device)
+        {
+                return;
+        }
+
+        std::lock_guard<std::mutex> lock(m_deviceMutex);
+        device->AddRef();
+        m_trackedDevicesA.push_back(device);
+}
+
+void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8W* device)
+{
+        if (!device)
+        {
+                return;
+        }
+
+        std::lock_guard<std::mutex> lock(m_deviceMutex);
+        device->AddRef();
+        m_trackedDevicesW.push_back(device);
+}
+
+void ControllerOverrideManager::BounceTrackedDevices()
+{
+        auto bounceCollection = [](auto& devices)
+        {
+                for (auto it = devices.begin(); it != devices.end();)
+                {
+                        auto* dev = *it;
+                        if (!dev)
+                        {
+                                it = devices.erase(it);
+                                continue;
+                        }
+
+                        dev->Unacquire();
+                        HRESULT hr = dev->Acquire();
+                        if (FAILED(hr))
+                        {
+                                hr = dev->Acquire();
+                        }
+
+                        if (FAILED(hr))
+                        {
+                                dev->Release();
+                                it = devices.erase(it);
+                                continue;
+                        }
+
+                        ++it;
+                }
+        };
+
+        std::lock_guard<std::mutex> lock(m_deviceMutex);
+        bounceCollection(m_trackedDevicesA);
+        bounceCollection(m_trackedDevicesW);
+}
+
+void ControllerOverrideManager::SendDeviceChangeBroadcast() const
+{
+        if (!g_gameProc.hWndGameWindow)
+        {
+                return;
+        }
+
+        SendMessageTimeout(g_gameProc.hWndGameWindow, WM_DEVICECHANGE, DBT_DEVNODES_CHANGED, 0, SMTO_ABORTIFHUNG, 50, nullptr);
 }
 
 void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const

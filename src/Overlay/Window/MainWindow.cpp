@@ -547,7 +547,7 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::HorizontalSpacing();
         if (ImGui::Button("Refresh controllers"))
         {
-                controllerManager.RefreshDevices();
+                controllerManager.RefreshDevicesAndReinitializeGame();
         }
 
         ImGui::SameLine();

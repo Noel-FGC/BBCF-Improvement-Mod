@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 struct ControllerDeviceInfo
 {
@@ -31,10 +32,14 @@ public:
         bool IsSteamInputLikelyActive() const { return m_steamInputLikely; }
 
         void RefreshDevices();
+        void RefreshDevicesAndReinitializeGame();
         void TickAutoRefresh();
 
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const;
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& devices) const;
+
+        void RegisterCreatedDevice(IDirectInputDevice8A* device);
+        void RegisterCreatedDevice(IDirectInputDevice8W* device);
 
         bool IsDeviceAllowed(const GUID& guid) const;
 
@@ -57,10 +62,17 @@ private:
 
         static std::string WideToUtf8(const std::wstring& value);
 
+        void BounceTrackedDevices();
+        void SendDeviceChangeBroadcast() const;
+
         std::vector<ControllerDeviceInfo> m_devices;
         GUID m_playerSelections[2];
         bool m_overrideEnabled = false;
         ULONGLONG m_lastRefresh = 0;
         size_t m_lastDeviceHash = 0;
         bool m_steamInputLikely = false;
+
+        std::vector<IDirectInputDevice8A*> m_trackedDevicesA;
+        std::vector<IDirectInputDevice8W*> m_trackedDevicesW;
+        mutable std::mutex m_deviceMutex;
 };
