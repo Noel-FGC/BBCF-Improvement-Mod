@@ -16,4 +16,5 @@
 - **How it works:**
   - The checkbox toggles a swap in the game's internal controller slots by editing the structure at `GetBbcfBaseAdress() + 0x8929c8` (named `battle_key_controller` in comments).
   - It swaps the pointers for menu controls, character controls, and two auxiliary slots between Player 1 and Player 2. This detaches the shared keyboard mapping so the keyboard can belong to a different player than the first detected controller.
+  - The address and layout come from reverse-engineering the game's controller table rather than any public API; the code treats it as an opaque array of pointers and manually reorders the entries in place when the toggle changes.
 - **Notes:** The structure layout is still handled as raw pointers (see the `battle_key_controller` comment block); formalizing it into a typed struct would make future work safer.
