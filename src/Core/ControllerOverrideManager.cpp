@@ -1,6 +1,7 @@
 #include "ControllerOverrideManager.h"
 
 #include "dllmain.h"
+#include "logger.h"
 #include "Core/interfaces.h"
 
 #include <Shellapi.h>
