@@ -10,7 +10,6 @@
 #include <array>
 #include <algorithm>
 #include <cctype>
-#include <cstring>
 #include <numeric>
 
 namespace
@@ -96,29 +95,21 @@ namespace
                 return false;
         }
 
-        bool IsLikelyVirtualDevice(const ControllerDeviceInfo& info)
+        bool IsLikelySteamVirtualDevice(const ControllerDeviceInfo& info)
         {
                 if (info.isKeyboard)
-                {
-                        return true;
-                }
-
-                const char* vjoyName = "vJoy Device";
-                if (info.name.size() != strlen(vjoyName))
                 {
                         return false;
                 }
 
-                for (size_t i = 0; i < info.name.size(); ++i)
-                {
-                        if (std::tolower(static_cast<unsigned char>(info.name[i])) != std::tolower(static_cast<unsigned char>(vjoyName[i])))
-                        {
-                                return false;
-                        }
-                }
+                std::string lowerName = info.name;
+                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char ch) {
+                        return static_cast<char>(std::tolower(ch));
+                });
 
-                return true;
+                return lowerName.find("steam virtual") != std::string::npos;
         }
+
 }
 
 ControllerOverrideManager& ControllerOverrideManager::GetInstance()
@@ -401,7 +392,8 @@ bool ControllerOverrideManager::CollectDevices()
         m_devices.swap(devices);
 
         bool anyListedGamepad = false;
-        bool anyNonVirtualPad = false;
+        bool anySteamVirtualPad = false;
+        bool anyNonSteamVirtualPad = false;
         for (const auto& device : m_devices)
         {
                 if (device.isKeyboard)
@@ -410,14 +402,17 @@ bool ControllerOverrideManager::CollectDevices()
                 }
 
                 anyListedGamepad = true;
-                if (!IsLikelyVirtualDevice(device))
+                if (IsLikelySteamVirtualDevice(device))
                 {
-                        anyNonVirtualPad = true;
-                        break;
+                        anySteamVirtualPad = true;
+                }
+                else
+                {
+                        anyNonSteamVirtualPad = true;
                 }
         }
 
-        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && !anyNonVirtualPad;
+        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && anySteamVirtualPad && !anyNonSteamVirtualPad;
 
         return diSuccess || !winmmDevices.empty();
 }
