@@ -95,6 +95,21 @@ namespace
                 return false;
         }
 
+        bool IsLikelySteamVirtualDevice(const ControllerDeviceInfo& info)
+        {
+                if (info.isKeyboard)
+                {
+                        return false;
+                }
+
+                std::string lowerName = info.name;
+                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char ch) {
+                        return static_cast<char>(std::tolower(ch));
+                });
+
+                return lowerName.find("steam virtual") != std::string::npos;
+        }
+
 }
 
 ControllerOverrideManager& ControllerOverrideManager::GetInstance()
@@ -375,6 +390,29 @@ bool ControllerOverrideManager::CollectDevices()
         }
 
         m_devices.swap(devices);
+
+        bool anyListedGamepad = false;
+        bool anySteamVirtualPad = false;
+        bool anyNonSteamVirtualPad = false;
+        for (const auto& device : m_devices)
+        {
+                if (device.isKeyboard)
+                {
+                        continue;
+                }
+
+                anyListedGamepad = true;
+                if (IsLikelySteamVirtualDevice(device))
+                {
+                        anySteamVirtualPad = true;
+                }
+                else
+                {
+                        anyNonSteamVirtualPad = true;
+                }
+        }
+
+        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && anySteamVirtualPad && !anyNonSteamVirtualPad;
 
         return diSuccess || !winmmDevices.empty();
 }
