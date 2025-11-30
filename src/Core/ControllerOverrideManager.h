@@ -41,6 +41,8 @@ public:
         void RegisterCreatedDevice(IDirectInputDevice8A* device);
         void RegisterCreatedDevice(IDirectInputDevice8W* device);
 
+        void DebugDumpTrackedDevices();
+
         bool IsDeviceAllowed(const GUID& guid) const;
 
         void OpenControllerControlPanel() const;

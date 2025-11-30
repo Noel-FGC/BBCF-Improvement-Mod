@@ -171,6 +171,7 @@ void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
 {
         RefreshDevices();
         BounceTrackedDevices();
+        DebugDumpTrackedDevices();
         SendDeviceChangeBroadcast();
 }
 
@@ -204,6 +205,7 @@ void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8A* devi
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         device->AddRef();
         m_trackedDevicesA.push_back(device);
+        LOG(1, "RegisterCreatedDeviceA: device=%p\n", device);
 }
 
 void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8W* device)
@@ -216,6 +218,7 @@ void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8W* devi
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         device->AddRef();
         m_trackedDevicesW.push_back(device);
+        LOG(1, "RegisterCreatedDeviceW: device=%p\n", device);
 }
 
 void ControllerOverrideManager::BounceTrackedDevices()
@@ -233,6 +236,7 @@ void ControllerOverrideManager::BounceTrackedDevices()
 
                         dev->Unacquire();
                         HRESULT hr = dev->Acquire();
+                        LOG(1, "BounceTrackedDevices: dev=%p Acquire hr=0x%08X\n", dev, hr);
                         if (FAILED(hr))
                         {
                                 hr = dev->Acquire();
@@ -252,6 +256,23 @@ void ControllerOverrideManager::BounceTrackedDevices()
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         bounceCollection(m_trackedDevicesA);
         bounceCollection(m_trackedDevicesW);
+}
+
+void ControllerOverrideManager::DebugDumpTrackedDevices()
+{
+        std::lock_guard<std::mutex> lock(m_deviceMutex);
+
+        LOG(1, "=== Tracked A devices ===\n");
+        for (auto* dev : m_trackedDevicesA)
+        {
+                LOG(1, "  A dev=%p\n", dev);
+        }
+
+        LOG(1, "=== Tracked W devices ===\n");
+        for (auto* dev : m_trackedDevicesW)
+        {
+                LOG(1, "  W dev=%p\n", dev);
+        }
 }
 
 void ControllerOverrideManager::SendDeviceChangeBroadcast() const
