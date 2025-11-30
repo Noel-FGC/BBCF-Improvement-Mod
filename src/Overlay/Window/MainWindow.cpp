@@ -465,18 +465,6 @@ void MainWindow::DrawControllerSettingSection() const {
                 return;
         }
 
-        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
-        if (steamInputLikely)
-        {
-                ImGui::HorizontalSpacing();
-                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
-                        "Steam Input appears to be active for this game.\n"
-                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
-                        "Other controller override options are hidden while Steam Input is enabled.");
-                ImGui::VerticalSpacing(5);
-                return;
-        }
-
         const auto& devices = controllerManager.GetDevices();
         if (devices.empty())
         {
