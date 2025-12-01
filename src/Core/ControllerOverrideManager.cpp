@@ -133,8 +133,9 @@ namespace
 
 std::string GuidToString(const GUID& guid)
 {
-        wchar_t buf[64] = {};
-        int written = StringFromGUID2(guid, buf, static_cast<int>(std::size(buf)));
+wchar_t buf[64] = {};
+constexpr int kBufferCount = static_cast<int>(sizeof(buf) / sizeof(buf[0]));
+int written = StringFromGUID2(guid, buf, kBufferCount);
         if (written <= 0)
         {
                 return {};
