@@ -438,7 +438,7 @@ void MainWindow::DrawControllerSettingSection() const {
         controllerManager.TickAutoRefresh();
 
         if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
-                uintptr_t base = GetBbcfBaseAdress();
+                uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
                 LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
 
                 // make the battle_key_controller into a proper struct later
