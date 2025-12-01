@@ -10,6 +10,7 @@
 #include "Core/info.h"
 #include "Core/interfaces.h"
 #include "Core/ControllerOverrideManager.h"
+#include "logger.h"
 #include "Game/gamestates.h"
 #include "Core/utils.h"
 #include "Overlay/imgui_utils.h"
@@ -547,12 +548,14 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::HorizontalSpacing();
         if (ImGui::Button("Refresh controllers"))
         {
+                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
                 controllerManager.RefreshDevicesAndReinitializeGame();
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Joy.cpl"))
         {
+                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
                 controllerManager.OpenControllerControlPanel();
         }
 }

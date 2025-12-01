@@ -10,6 +10,7 @@
 #include <mmsystem.h>
 #include <joystickapi.h>
 #include <dbt.h>
+#include <objbase.h>
 
 #include <array>
 #include <algorithm>
@@ -32,7 +33,7 @@ namespace
         {
                 auto ppDev = GetBbcfPadSlot0Ptr();
                 IDirectInputDevice8W* dev = ppDev ? *ppDev : nullptr;
-                LOG(1, "[BBCF] PadSlot0 ptr from game table = %p\n", dev);
+                LOG(1, "[BBCF] PadSlot0 ptr from game table = %p (slot addr=%p)\n", dev, ppDev);
         }
 
         std::wstring GetPreferredSystemExecutable(const wchar_t* executableName)
@@ -130,6 +131,32 @@ namespace
 
 }
 
+std::string GuidToString(const GUID& guid)
+{
+        wchar_t buf[64] = {};
+        int written = StringFromGUID2(guid, buf, static_cast<int>(std::size(buf)));
+        if (written <= 0)
+        {
+                return {};
+        }
+
+        std::wstring wide(buf);
+        int required = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (required <= 0)
+        {
+                return {};
+        }
+
+        std::string output(static_cast<size_t>(required), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, &output[0], required, nullptr, nullptr);
+        if (!output.empty() && output.back() == '\0')
+        {
+                output.pop_back();
+        }
+
+        return output;
+}
+
 ControllerOverrideManager& ControllerOverrideManager::GetInstance()
 {
         static ControllerOverrideManager instance;
@@ -140,6 +167,7 @@ ControllerOverrideManager::ControllerOverrideManager()
 {
         m_playerSelections[0] = GUID_NULL;
         m_playerSelections[1] = GUID_NULL;
+        LOG(1, "ControllerOverrideManager::ControllerOverrideManager - initializing device list\n");
         RefreshDevices();
 }
 
@@ -177,19 +205,23 @@ const std::vector<ControllerDeviceInfo>& ControllerOverrideManager::GetDevices()
 
 void ControllerOverrideManager::RefreshDevices()
 {
+        LOG(1, "ControllerOverrideManager::RefreshDevices - begin (override=%d)\n", m_overrideEnabled ? 1 : 0);
         CollectDevices();
         EnsureSelectionsValid();
         m_lastRefresh = GetTickCount64();
         m_lastDeviceHash = HashDevices(m_devices);
+        LOG(1, "ControllerOverrideManager::RefreshDevices - end (devices=%zu, hash=%zu)\n", m_devices.size(), m_lastDeviceHash);
 }
 
 void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
 {
+        LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - begin\n");
         RefreshDevices();
         BounceTrackedDevices();
         DebugDumpTrackedDevices();
         DebugLogPadSlot0();
         SendDeviceChangeBroadcast();
+        LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - end\n");
 }
 
 void ControllerOverrideManager::TickAutoRefresh()
@@ -206,6 +238,7 @@ void ControllerOverrideManager::TickAutoRefresh()
                 {
                         EnsureSelectionsValid();
                         m_lastDeviceHash = newHash;
+                        LOG(1, "ControllerOverrideManager::TickAutoRefresh - device hash changed (devices=%zu, hash=%zu)\n", m_devices.size(), m_lastDeviceHash);
                 }
         }
 
@@ -222,7 +255,7 @@ void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8A* devi
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         device->AddRef();
         m_trackedDevicesA.push_back(device);
-        LOG(1, "RegisterCreatedDeviceA: device=%p\n", device);
+        LOG(1, "RegisterCreatedDeviceA: device=%p (trackedA=%zu, trackedW=%zu)\n", device, m_trackedDevicesA.size(), m_trackedDevicesW.size());
 }
 
 void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8W* device)
@@ -235,11 +268,12 @@ void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8W* devi
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         device->AddRef();
         m_trackedDevicesW.push_back(device);
-        LOG(1, "RegisterCreatedDeviceW: device=%p\n", device);
+        LOG(1, "RegisterCreatedDeviceW: device=%p (trackedA=%zu, trackedW=%zu)\n", device, m_trackedDevicesA.size(), m_trackedDevicesW.size());
 }
 
 void ControllerOverrideManager::BounceTrackedDevices()
 {
+        LOG(1, "ControllerOverrideManager::BounceTrackedDevices - begin\n");
         auto bounceCollection = [](auto& devices)
         {
                 for (auto it = devices.begin(); it != devices.end();)
@@ -247,6 +281,7 @@ void ControllerOverrideManager::BounceTrackedDevices()
                         auto* dev = *it;
                         if (!dev)
                         {
+                                LOG(1, "BounceTrackedDevices: encountered null entry, erasing\n");
                                 it = devices.erase(it);
                                 continue;
                         }
@@ -257,10 +292,12 @@ void ControllerOverrideManager::BounceTrackedDevices()
                         if (FAILED(hr))
                         {
                                 hr = dev->Acquire();
+                                LOG(1, "BounceTrackedDevices: retry Acquire dev=%p hr=0x%08X\n", dev, hr);
                         }
 
                         if (FAILED(hr))
                         {
+                                LOG(1, "BounceTrackedDevices: dev=%p failed to acquire after retries, releasing\n", dev);
                                 dev->Release();
                                 it = devices.erase(it);
                                 continue;
@@ -273,6 +310,7 @@ void ControllerOverrideManager::BounceTrackedDevices()
         std::lock_guard<std::mutex> lock(m_deviceMutex);
         bounceCollection(m_trackedDevicesA);
         bounceCollection(m_trackedDevicesW);
+        LOG(1, "ControllerOverrideManager::BounceTrackedDevices - end (trackedA=%zu, trackedW=%zu)\n", m_trackedDevicesA.size(), m_trackedDevicesW.size());
 }
 
 void ControllerOverrideManager::DebugDumpTrackedDevices()
@@ -290,6 +328,7 @@ void ControllerOverrideManager::DebugDumpTrackedDevices()
         {
                 LOG(1, "  W dev=%p\n", dev);
         }
+        LOG(1, "=== End tracked dump (A=%zu, W=%zu) ===\n", m_trackedDevicesA.size(), m_trackedDevicesW.size());
 }
 
 void ControllerOverrideManager::SendDeviceChangeBroadcast() const
@@ -300,6 +339,7 @@ void ControllerOverrideManager::SendDeviceChangeBroadcast() const
         }
 
         SendMessageTimeout(g_gameProc.hWndGameWindow, WM_DEVICECHANGE, DBT_DEVNODES_CHANGED, 0, SMTO_ABORTIFHUNG, 50, nullptr);
+        LOG(1, "ControllerOverrideManager::SendDeviceChangeBroadcast - sent WM_DEVICECHANGE to %p\n", g_gameProc.hWndGameWindow);
 }
 
 void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const
@@ -478,6 +518,7 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 
 bool ControllerOverrideManager::CollectDevices()
 {
+        LOG(1, "ControllerOverrideManager::CollectDevices - begin\n");
         m_steamInputLikely = IsProbablySteamInputActive();
 
         std::vector<ControllerDeviceInfo> directInputDevices;
@@ -508,6 +549,16 @@ bool ControllerOverrideManager::CollectDevices()
 
         m_devices.swap(devices);
 
+        LOG(1, "ControllerOverrideManager::CollectDevices - steamInputLikely=%d diSuccess=%d diCount=%zu winmmCount=%zu total=%zu\n",
+                m_steamInputLikely ? 1 : 0, diSuccess ? 1 : 0, directInputDevices.size(), winmmDevices.size(), m_devices.size());
+
+        for (size_t i = 0; i < m_devices.size(); ++i)
+        {
+                const auto& device = m_devices[i];
+                LOG(1, "  Device[%zu]: name='%s' guid=%s keyboard=%d winmm=%d winmmId=%u\n", i, device.name.c_str(), GuidToString(device.guid).c_str(),
+                        device.isKeyboard ? 1 : 0, device.isWinmmDevice ? 1 : 0, device.winmmId);
+        }
+
         bool anyListedGamepad = false;
         bool anySteamVirtualPad = false;
         bool anyNonSteamVirtualPad = false;
@@ -536,14 +587,17 @@ bool ControllerOverrideManager::CollectDevices()
 
 bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDeviceInfo>& outDevices)
 {
+        LOG(1, "ControllerOverrideManager::TryEnumerateDevicesA - begin\n");
         if (!orig_DirectInput8Create)
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesA - orig_DirectInput8Create missing\n");
                 return false;
         }
 
         IDirectInput8A* dinput = nullptr;
         if (FAILED(orig_DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8A, (LPVOID*)&dinput, nullptr)))
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesA - DirectInput8Create failed\n");
                 return false;
         }
 
@@ -562,7 +616,13 @@ bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDevic
 
         if (FAILED(enumResult))
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesA - EnumDevices failed hr=0x%08X\n", enumResult);
                 return false;
+        }
+        LOG(1, "ControllerOverrideManager::TryEnumerateDevicesA - success count=%zu\n", outDevices.size());
+        for (size_t i = 0; i < outDevices.size(); ++i)
+        {
+                LOG(1, "  [A] Device[%zu]: name='%s' guid=%s\n", i, outDevices[i].name.c_str(), GuidToString(outDevices[i].guid).c_str());
         }
         return true;
 }
@@ -570,6 +630,7 @@ bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDevic
 void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerDeviceInfo>& outDevices) const
 {
         UINT deviceCount = joyGetNumDevs();
+        LOG(1, "ControllerOverrideManager::TryEnumerateWinmmDevices - begin count=%u\n", deviceCount);
 
         for (UINT deviceId = 0; deviceId < deviceCount; ++deviceId)
         {
@@ -595,6 +656,7 @@ void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerD
                 deviceInfo.isWinmmDevice = true;
                 deviceInfo.winmmId = deviceId;
                 outDevices.push_back(deviceInfo);
+                LOG(1, "  [WINMM] Device id=%u name='%s' guid=%s\n", deviceId, deviceInfo.name.c_str(), GuidToString(deviceInfo.guid).c_str());
         }
 }
 
@@ -631,14 +693,17 @@ bool ControllerOverrideManager::NamesEqualIgnoreCase(const std::string& lhs, con
 
 bool ControllerOverrideManager::TryEnumerateDevicesW(std::vector<ControllerDeviceInfo>& outDevices)
 {
+        LOG(1, "ControllerOverrideManager::TryEnumerateDevicesW - begin\n");
         if (!orig_DirectInput8Create)
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesW - orig_DirectInput8Create missing\n");
                 return false;
         }
 
         IDirectInput8W* dinput = nullptr;
         if (FAILED(orig_DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W, (LPVOID*)&dinput, nullptr)))
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesW - DirectInput8Create failed\n");
                 return false;
         }
 
@@ -657,7 +722,13 @@ bool ControllerOverrideManager::TryEnumerateDevicesW(std::vector<ControllerDevic
 
         if (FAILED(enumResult))
         {
+                LOG(1, "ControllerOverrideManager::TryEnumerateDevicesW - EnumDevices failed hr=0x%08X\n", enumResult);
                 return false;
+        }
+        LOG(1, "ControllerOverrideManager::TryEnumerateDevicesW - success count=%zu\n", outDevices.size());
+        for (size_t i = 0; i < outDevices.size(); ++i)
+        {
+                LOG(1, "  [W] Device[%zu]: name='%s' guid=%s\n", i, outDevices[i].name.c_str(), GuidToString(outDevices[i].guid).c_str());
         }
         return true;
 }

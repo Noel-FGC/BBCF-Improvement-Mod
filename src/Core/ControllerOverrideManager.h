@@ -16,6 +16,8 @@ struct ControllerDeviceInfo
         UINT winmmId = static_cast<UINT>(-1);
 };
 
+std::string GuidToString(const GUID& guid);
+
 class ControllerOverrideManager
 {
 public:
