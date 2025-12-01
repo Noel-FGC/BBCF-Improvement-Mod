@@ -109,13 +109,15 @@ DWORD WINAPI BBCF_IM_Start(HMODULE hModule)
 		ExitProcess(0);
 	}
 
-	if (!placeHooks_detours())
-	{
-		MessageBoxA(nullptr, "Failed IAT hook", "BBCFIM", MB_OK);
-		ExitProcess(0);
-	}
+        if (!placeHooks_detours())
+        {
+                MessageBoxA(nullptr, "Failed IAT hook", "BBCFIM", MB_OK);
+                ExitProcess(0);
+        }
 
-	g_interfaces.pPaletteManager = new PaletteManager();
+        LOG(1, "GetBbcfBaseAdress() = 0x%p\n", reinterpret_cast<void*>(GetBbcfBaseAdress()));
+
+        g_interfaces.pPaletteManager = new PaletteManager();
 
 	return 0;
 }
