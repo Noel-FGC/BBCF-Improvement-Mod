@@ -2,6 +2,7 @@
 
 #include "dllmain.h"
 #include "logger.h"
+#include "Core/utils.h"
 #include "Core/interfaces.h"
 
 #include <Shellapi.h>
@@ -19,6 +20,20 @@ namespace
 {
         constexpr ULONGLONG DEVICE_REFRESH_INTERVAL_MS = 1000;
         constexpr UINT WINMM_INVALID_ID = static_cast<UINT>(-1);
+        constexpr uintptr_t BBCF_PAD_SLOT0_PTR_OFFSET = 0x104FA298;
+
+        IDirectInputDevice8W** GetBbcfPadSlot0Ptr()
+        {
+                auto base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
+                return reinterpret_cast<IDirectInputDevice8W**>(base + BBCF_PAD_SLOT0_PTR_OFFSET);
+        }
+
+        void DebugLogPadSlot0()
+        {
+                auto ppDev = GetBbcfPadSlot0Ptr();
+                IDirectInputDevice8W* dev = ppDev ? *ppDev : nullptr;
+                LOG(1, "[BBCF] PadSlot0 ptr from game table = %p\n", dev);
+        }
 
         std::wstring GetPreferredSystemExecutable(const wchar_t* executableName)
         {
@@ -173,6 +188,7 @@ void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
         RefreshDevices();
         BounceTrackedDevices();
         DebugDumpTrackedDevices();
+        DebugLogPadSlot0();
         SendDeviceChangeBroadcast();
 }
 
