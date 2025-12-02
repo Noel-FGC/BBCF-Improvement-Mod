@@ -15,7 +15,9 @@
 #include <array>
 #include <algorithm>
 #include <cctype>
+#include <cwctype>
 #include <numeric>
+#include <hidsdi.h>
 
 // ===== BBCF internal input glue (SystemManager + re-create controllers) =====
 
@@ -34,6 +36,21 @@ struct AASTEAM_SystemManager;
 // for BBCF_PAD_SLOT0_PTR_OFFSET.
 namespace
 {
+    struct SteamInputEnvInfo
+    {
+        bool anyEnvHit = false;
+        DWORD ignoreDevicesLength = 0;
+        size_t ignoreDeviceEntryCount = 0;
+        bool ignoreListLooksLikeSteamInput = false;
+    };
+
+    struct RawInputDeviceInfo
+    {
+        USHORT vendorId = 0;
+        USHORT productId = 0;
+        std::wstring name;
+    };
+
     constexpr uintptr_t BBCF_SYSTEM_MANAGER_PTR_OFFSET = 0x008929C8;
     constexpr uintptr_t BBCF_CREATE_PADS_OFFSET = 0x000722C0;
     constexpr uintptr_t BBCF_CREATE_SYSTEMKEY_OFFSET = 0x00073EF0;
@@ -193,6 +210,83 @@ namespace
                 });
         }
 
+        size_t CountIgnoreDeviceEntries(const std::wstring& value)
+        {
+                size_t entries = 0;
+                bool inToken = false;
+
+                for (wchar_t ch : value)
+                {
+                        if (ch == L',' || ch == L';' || iswspace(ch))
+                        {
+                                if (inToken)
+                                {
+                                        ++entries;
+                                        inToken = false;
+                                }
+                                continue;
+                        }
+
+                        inToken = true;
+                }
+
+                if (inToken)
+                        ++entries;
+
+                return entries;
+        }
+
+        SteamInputEnvInfo GetSteamInputEnvInfo()
+        {
+                constexpr std::array<const wchar_t*, 3> kSteamEnvVars = {
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT",
+                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES",
+                        L"SDL_ENABLE_STEAM_CONTROLLERS",
+                };
+
+                // When Steam Input is enabled, the IGNORE_DEVICES list explodes to thousands of characters
+                // to hide most real devices from the game. Empirically, a value under ~1k indicates Steam
+                // Input is off, while the enabled path produces >10k. Use a conservative threshold to avoid
+                // false positives on machines with smaller lists.
+                constexpr size_t kMinIgnoreDevicesLengthForSteamInput = 2000;
+
+                SteamInputEnvInfo info{};
+
+                for (auto name : kSteamEnvVars)
+                {
+                        DWORD length = GetEnvironmentVariableW(name, nullptr, 0);
+                        LOG(1, "[SteamInputDetect] env '%S' len=%lu\n", name, length);
+                        if (length == 0)
+                                continue;
+
+                        info.anyEnvHit = true;
+
+                        if (wcscmp(name, L"SDL_GAMECONTROLLER_IGNORE_DEVICES") == 0)
+                        {
+                                std::wstring buffer;
+                                buffer.resize(length);
+                                DWORD written = GetEnvironmentVariableW(name, &buffer[0], length);
+                                if (written > 0 && written < length)
+                                {
+                                        buffer.resize(written);
+                                }
+
+                                info.ignoreDevicesLength = written;
+                                info.ignoreDeviceEntryCount = CountIgnoreDeviceEntries(buffer);
+                        }
+                }
+
+                if (!info.anyEnvHit)
+                        LOG(1, "[SteamInputDetect] no env hints found\n");
+
+                info.ignoreListLooksLikeSteamInput = info.ignoreDevicesLength >= kMinIgnoreDevicesLengthForSteamInput;
+
+                LOG(1, "[SteamInputDetect] ignore list entries=%zu len=%lu threshold=%zu meetsThreshold=%d\n",
+                        info.ignoreDeviceEntryCount, info.ignoreDevicesLength, kMinIgnoreDevicesLengthForSteamInput,
+                        info.ignoreListLooksLikeSteamInput ? 1 : 0);
+                return info;
+        }
+
         template <typename InstanceType>
         GUID GetGuidFromInstance(const InstanceType& instance)
         {
@@ -205,28 +299,85 @@ namespace
                 return instance.guidInstance;
         }
 
-        bool IsProbablySteamInputActive()
+        void PopulateVendorProductIds(ControllerDeviceInfo& info, const GUID& productGuid)
         {
-                constexpr std::array<const wchar_t*, 3> kSteamEnvVars = {
-                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT",
-                        L"SDL_GAMECONTROLLER_IGNORE_DEVICES",
-                        L"SDL_ENABLE_STEAM_CONTROLLERS",
-                };
+                if (productGuid == GUID_NULL)
+                        return;
 
-                bool anyEnvHit = false;
-                for (auto name : kSteamEnvVars)
+                info.productId = LOWORD(productGuid.Data1);
+                info.vendorId = HIWORD(productGuid.Data1);
+                info.hasVendorProductIds = (info.vendorId != 0 || info.productId != 0);
+        }
+
+        bool IsSteamInputModuleLoaded()
+        {
+                HMODULE steamInput = GetModuleHandleW(L"steaminput.dll");
+                HMODULE steamController = GetModuleHandleW(L"steamcontroller.dll");
+                bool loaded = steamInput || steamController;
+                LOG(1, "[SteamInputDetect] module steaminput.dll=%p steamcontroller.dll=%p loaded=%d\n", steamInput, steamController, loaded ? 1 : 0);
+                return loaded;
+        }
+
+        std::vector<RawInputDeviceInfo> EnumerateRawInputDevices()
+        {
+                std::vector<RawInputDeviceInfo> devices;
+
+                UINT deviceCount = 0;
+                if (GetRawInputDeviceList(nullptr, &deviceCount, sizeof(RAWINPUTDEVICELIST)) != 0 || deviceCount == 0)
+                        return devices;
+
+                std::vector<RAWINPUTDEVICELIST> rawList(deviceCount);
+                if (GetRawInputDeviceList(rawList.data(), &deviceCount, sizeof(RAWINPUTDEVICELIST)) == static_cast<UINT>(-1))
+                        return devices;
+
+                for (UINT i = 0; i < deviceCount; ++i)
                 {
-                        DWORD length = GetEnvironmentVariableW(name, nullptr, 0);
-                        LOG(1, "[SteamInputDetect] env '%S' len=%lu\n", name, length);
-                        if (length > 0)
+                        RAWINPUTDEVICELIST& entry = rawList[i];
+                        RID_DEVICE_INFO info{};
+                        info.cbSize = sizeof(info);
+                        UINT infoSize = info.cbSize;
+                        if (GetRawInputDeviceInfoW(entry.hDevice, RIDI_DEVICEINFO, &info, &infoSize) == static_cast<UINT>(-1))
+                                continue;
+
+                        if (info.dwType != RIM_TYPEHID)
+                                continue;
+
+                        const RID_DEVICE_INFO_HID& hid = info.hid;
+                        if (hid.usUsagePage != HID_USAGE_PAGE_GENERIC)
+                                continue;
+
+                        if (hid.usUsage != HID_USAGE_GENERIC_GAMEPAD && hid.usUsage != HID_USAGE_GENERIC_JOYSTICK)
+                                continue;
+
+                        RawInputDeviceInfo rawInfo{};
+                        rawInfo.vendorId = hid.dwVendorId;
+                        rawInfo.productId = hid.dwProductId;
+
+                        UINT nameLength = 0;
+                        if (GetRawInputDeviceInfoW(entry.hDevice, RIDI_DEVICENAME, nullptr, &nameLength) == 0 && nameLength > 0)
                         {
-                                anyEnvHit = true;
-                                return true;
+                                std::wstring name;
+                                name.resize(nameLength);
+                                UINT written = GetRawInputDeviceInfoW(entry.hDevice, RIDI_DEVICENAME, &name[0], &nameLength);
+                                if (written > 0 && written <= nameLength)
+                                {
+                                        if (!name.empty() && name.back() == L'\0')
+                                                name.pop_back();
+                                        rawInfo.name = std::move(name);
+                                }
                         }
+
+                        devices.push_back(std::move(rawInfo));
                 }
 
-                LOG(1, "[SteamInputDetect] no env hints found\n");
-                return anyEnvHit;
+                LOG(1, "[SteamInputDetect] raw HID devices (gamepad/joystick)=%zu\n", devices.size());
+                for (size_t i = 0; i < devices.size(); ++i)
+                {
+                        const auto& device = devices[i];
+                        LOG(1, "  [RAW] Device[%zu]: vid=0x%04X pid=0x%04X name='%S'\n", i, device.vendorId, device.productId, device.name.c_str());
+                }
+
+                return devices;
         }
 
 }
@@ -642,8 +793,10 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 bool ControllerOverrideManager::CollectDevices()
 {
         LOG(1, "ControllerOverrideManager::CollectDevices - begin\n");
-        bool envLikely = IsProbablySteamInputActive();
-        m_steamInputLikely = envLikely;
+        auto envInfo = GetSteamInputEnvInfo();
+        const bool envLikely = envInfo.anyEnvHit && envInfo.ignoreListLooksLikeSteamInput;
+
+        std::vector<RawInputDeviceInfo> rawInputDevices = EnumerateRawInputDevices();
 
         std::vector<ControllerDeviceInfo> directInputDevices;
         bool diSuccess = TryEnumerateDevicesW(directInputDevices);
@@ -683,23 +836,63 @@ bool ControllerOverrideManager::CollectDevices()
                         device.isKeyboard ? 1 : 0, device.isWinmmDevice ? 1 : 0, device.winmmId);
         }
 
-	bool anyListedGamepad = false;
-	for (const auto& device : m_devices)
-	{
-		if (device.isKeyboard)
-		{
-			continue;
-		}
+        size_t diGamepadCount = 0;
+        for (const auto& device : m_devices)
+        {
+                if (device.isKeyboard)
+                        continue;
 
-		anyListedGamepad = true;
-	}
+                ++diGamepadCount;
+        }
 
-	LOG(1, "[SteamInputDetect] anyListedGamepad=%d\n", anyListedGamepad ? 1 : 0);
+        bool anyListedGamepad = diGamepadCount > 0;
+        LOG(1, "[SteamInputDetect] anyListedGamepad=%d diGamepadCount=%zu\n", anyListedGamepad ? 1 : 0, diGamepadCount);
 
-	m_steamInputLikely = m_steamInputLikely && anyListedGamepad;
+        bool rawDeviceMissingInDirectInput = false;
+        for (const auto& raw : rawInputDevices)
+        {
+                if (raw.vendorId == 0 && raw.productId == 0)
+                        continue;
 
-	LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d anyListedGamepad=%d)\n",
-		m_steamInputLikely ? 1 : 0, envLikely ? 1 : 0, anyListedGamepad ? 1 : 0);
+                bool matched = false;
+                for (const auto& device : m_devices)
+                {
+                        if (device.isKeyboard || !device.hasVendorProductIds)
+                                continue;
+
+                        if (device.vendorId == raw.vendorId && device.productId == raw.productId)
+                        {
+                                matched = true;
+                                break;
+                        }
+                }
+
+                if (!matched)
+                {
+                        rawDeviceMissingInDirectInput = true;
+                        break;
+                }
+        }
+
+        bool steamModuleLoaded = IsSteamInputModuleLoaded();
+        bool rawSuggestsFiltering = (!rawInputDevices.empty() && rawInputDevices.size() > diGamepadCount) || rawDeviceMissingInDirectInput;
+        bool winmmSuggestsFiltering = !winmmDevices.empty() && winmmDevices.size() > diGamepadCount;
+
+        // Consider Steam Input active only when (a) the SDL ignore list length matches the large Steam Input profile and
+        // (b) at least one gamepad remains visible to DirectInput. Module presence and filtering hints are logged for
+        // diagnostics but no longer drive the decision to avoid false positives when SteamInput DLLs are loaded for other reasons.
+        m_steamInputLikely = envLikely && anyListedGamepad;
+
+        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d moduleLoaded=%d rawSuggestsFiltering=%d winmmSuggestsFiltering=%d rawMissing=%d rawCount=%zu envIgnoreEntries=%zu envLen=%lu)\n",
+                m_steamInputLikely ? 1 : 0,
+                envLikely ? 1 : 0,
+                steamModuleLoaded ? 1 : 0,
+                rawSuggestsFiltering ? 1 : 0,
+                winmmSuggestsFiltering ? 1 : 0,
+                rawDeviceMissingInDirectInput ? 1 : 0,
+                rawInputDevices.size(),
+                envInfo.ignoreDeviceEntryCount,
+                envInfo.ignoreDevicesLength);
 
         return diSuccess || !winmmDevices.empty();
 }
@@ -726,6 +919,7 @@ bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDevic
                 info.guid = inst->guidInstance;
                 info.isKeyboard = false;
                 info.name = inst->tszProductName;
+                PopulateVendorProductIds(info, inst->guidProduct);
                 deviceList->push_back(info);
                 return DIENUM_CONTINUE;
         };
@@ -832,6 +1026,7 @@ bool ControllerOverrideManager::TryEnumerateDevicesW(std::vector<ControllerDevic
                 info.guid = inst->guidInstance;
                 info.isKeyboard = false;
                 info.name = ControllerOverrideManager::WideToUtf8(inst->tszProductName);
+                PopulateVendorProductIds(info, inst->guidProduct);
                 deviceList->push_back(info);
                 return DIENUM_CONTINUE;
         };
