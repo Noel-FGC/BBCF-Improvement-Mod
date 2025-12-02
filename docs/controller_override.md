@@ -1,5 +1,7 @@
 # Controller override and keyboard separation internals
 
+_Reverse-engineering notes for this feature lean on the memory map published by **tadatys** in the [BBCF-Ghidra repository](https://github.com/Tadatys/BBCF-Ghidra), preserved under `docs/Research/Tadatys-BBCF-Ghidra/` for reference._
+
 ## Refresh controllers
 - **UI hook:** `Overlay/Window/MainWindow.cpp` uses the Controller Override Manager when the **Refresh controllers** button is pressed.
 - **What happens:**
