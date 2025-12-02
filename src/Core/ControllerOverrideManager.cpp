@@ -41,6 +41,7 @@ namespace
         bool anyEnvHit = false;
         DWORD ignoreDevicesLength = 0;
         size_t ignoreDeviceEntryCount = 0;
+        bool ignoreListLooksLikeSteamInput = false;
     };
 
     struct RawInputDeviceInfo
@@ -243,6 +244,12 @@ namespace
                         L"SDL_ENABLE_STEAM_CONTROLLERS",
                 };
 
+                // When Steam Input is enabled, the IGNORE_DEVICES list explodes to thousands of characters
+                // to hide most real devices from the game. Empirically, a value under ~1k indicates Steam
+                // Input is off, while the enabled path produces >10k. Use a conservative threshold to avoid
+                // false positives on machines with smaller lists.
+                constexpr size_t kMinIgnoreDevicesLengthForSteamInput = 2000;
+
                 SteamInputEnvInfo info{};
 
                 for (auto name : kSteamEnvVars)
@@ -272,7 +279,11 @@ namespace
                 if (!info.anyEnvHit)
                         LOG(1, "[SteamInputDetect] no env hints found\n");
 
-                LOG(1, "[SteamInputDetect] ignore list entries=%zu len=%lu\n", info.ignoreDeviceEntryCount, info.ignoreDevicesLength);
+                info.ignoreListLooksLikeSteamInput = info.ignoreDevicesLength >= kMinIgnoreDevicesLengthForSteamInput;
+
+                LOG(1, "[SteamInputDetect] ignore list entries=%zu len=%lu threshold=%zu meetsThreshold=%d\n",
+                        info.ignoreDeviceEntryCount, info.ignoreDevicesLength, kMinIgnoreDevicesLengthForSteamInput,
+                        info.ignoreListLooksLikeSteamInput ? 1 : 0);
                 return info;
         }
 
@@ -783,7 +794,7 @@ bool ControllerOverrideManager::CollectDevices()
 {
         LOG(1, "ControllerOverrideManager::CollectDevices - begin\n");
         auto envInfo = GetSteamInputEnvInfo();
-        const bool envLikely = envInfo.anyEnvHit && envInfo.ignoreDeviceEntryCount > 0;
+        const bool envLikely = envInfo.anyEnvHit && envInfo.ignoreListLooksLikeSteamInput;
 
         std::vector<RawInputDeviceInfo> rawInputDevices = EnumerateRawInputDevices();
 
@@ -867,12 +878,12 @@ bool ControllerOverrideManager::CollectDevices()
         bool rawSuggestsFiltering = (!rawInputDevices.empty() && rawInputDevices.size() > diGamepadCount) || rawDeviceMissingInDirectInput;
         bool winmmSuggestsFiltering = !winmmDevices.empty() && winmmDevices.size() > diGamepadCount;
 
-        // Consider Steam Input active only when (a) Steam's runtime is present or its SDL env vars are populated,
-        // (b) we see evidence of controller filtering (raw HID or WinMM shows more pads than DirectInput), and
-        // (c) at least one gamepad remains visible to DirectInput.
-        m_steamInputLikely = (envLikely || steamModuleLoaded) && (rawSuggestsFiltering || winmmSuggestsFiltering) && anyListedGamepad;
+        // Consider Steam Input active only when (a) the SDL ignore list length matches the large Steam Input profile and
+        // (b) at least one gamepad remains visible to DirectInput. Module presence and filtering hints are logged for
+        // diagnostics but no longer drive the decision to avoid false positives when SteamInput DLLs are loaded for other reasons.
+        m_steamInputLikely = envLikely && anyListedGamepad;
 
-        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d moduleLoaded=%d rawSuggestsFiltering=%d winmmSuggestsFiltering=%d rawMissing=%d rawCount=%zu envIgnoreEntries=%zu)\n",
+        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d moduleLoaded=%d rawSuggestsFiltering=%d winmmSuggestsFiltering=%d rawMissing=%d rawCount=%zu envIgnoreEntries=%zu envLen=%lu)\n",
                 m_steamInputLikely ? 1 : 0,
                 envLikely ? 1 : 0,
                 steamModuleLoaded ? 1 : 0,
@@ -880,7 +891,8 @@ bool ControllerOverrideManager::CollectDevices()
                 winmmSuggestsFiltering ? 1 : 0,
                 rawDeviceMissingInDirectInput ? 1 : 0,
                 rawInputDevices.size(),
-                envInfo.ignoreDeviceEntryCount);
+                envInfo.ignoreDeviceEntryCount,
+                envInfo.ignoreDevicesLength);
 
         return diSuccess || !winmmDevices.empty();
 }
