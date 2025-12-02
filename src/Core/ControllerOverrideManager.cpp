@@ -462,7 +462,7 @@ void ControllerOverrideManager::SetKeyboardControllerSeparated(bool enabled)
         char*** battle_key_controller = reinterpret_cast<char***>(base + 0x8929c8);
 
         LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", static_cast<unsigned int>(base));
-        LOG(1, "[SEP] battle_key_controller addr = 0x%08X\n", static_cast<unsigned int>(battle_key_controller));
+        LOG(1, "[SEP] battle_key_controller addr = 0x%08X\n", reinterpret_cast<unsigned int>(battle_key_controller));
 
         if (!battle_key_controller || !*battle_key_controller)
         {
@@ -478,32 +478,32 @@ void ControllerOverrideManager::SetKeyboardControllerSeparated(bool enabled)
         char** char_control_p1 = reinterpret_cast<char**>(reinterpret_cast<char*>(*battle_key_controller) + 0x24);
         char** char_control_p2 = reinterpret_cast<char**>(reinterpret_cast<char*>(*battle_key_controller) + 0x28);
 
-        LOG(1, "[SEP] menu_p1 slot ptr addr = 0x%08X\n", static_cast<unsigned int>(menu_control_p1));
-        LOG(1, "[SEP] menu_p2 slot ptr addr = 0x%08X\n", static_cast<unsigned int>(menu_control_p2));
-        LOG(1, "[SEP] unk_p1  slot ptr addr = 0x%08X\n", static_cast<unsigned int>(unknown_p1));
-        LOG(1, "[SEP] unk_p2  slot ptr addr = 0x%08X\n", static_cast<unsigned int>(unknown_p2));
-        LOG(1, "[SEP] char_p1 slot ptr addr = 0x%08X\n", static_cast<unsigned int>(char_control_p1));
-        LOG(1, "[SEP] char_p2 slot ptr addr = 0x%08X\n", static_cast<unsigned int>(char_control_p2));
+        LOG(1, "[SEP] menu_p1 slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(menu_control_p1));
+        LOG(1, "[SEP] menu_p2 slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(menu_control_p2));
+        LOG(1, "[SEP] unk_p1  slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(unknown_p1));
+        LOG(1, "[SEP] unk_p2  slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(unknown_p2));
+        LOG(1, "[SEP] char_p1 slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(char_control_p1));
+        LOG(1, "[SEP] char_p2 slot ptr addr = 0x%08X\n", reinterpret_cast<unsigned int>(char_control_p2));
 
         LOG(1, "[SEP] BEFORE TOGGLE:\n");
-        LOG(1, "      *menu_p1 = 0x%08X\n", static_cast<unsigned int>(*menu_control_p1));
-        LOG(1, "      *menu_p2 = 0x%08X\n", static_cast<unsigned int>(*menu_control_p2));
-        LOG(1, "      *unk_p1  = 0x%08X\n", static_cast<unsigned int>(*unknown_p1));
-        LOG(1, "      *unk_p2  = 0x%08X\n", static_cast<unsigned int>(*unknown_p2));
-        LOG(1, "      *char_p1 = 0x%08X\n", static_cast<unsigned int>(*char_control_p1));
-        LOG(1, "      *char_p2 = 0x%08X\n", static_cast<unsigned int>(*char_control_p2));
+        LOG(1, "      *menu_p1 = 0x%08X\n", reinterpret_cast<unsigned int>(*menu_control_p1));
+        LOG(1, "      *menu_p2 = 0x%08X\n", reinterpret_cast<unsigned int>(*menu_control_p2));
+        LOG(1, "      *unk_p1  = 0x%08X\n", reinterpret_cast<unsigned int>(*unknown_p1));
+        LOG(1, "      *unk_p2  = 0x%08X\n", reinterpret_cast<unsigned int>(*unknown_p2));
+        LOG(1, "      *char_p1 = 0x%08X\n", reinterpret_cast<unsigned int>(*char_control_p1));
+        LOG(1, "      *char_p2 = 0x%08X\n", reinterpret_cast<unsigned int>(*char_control_p2));
 
         std::swap(*menu_control_p1, *menu_control_p2);
         std::swap(*char_control_p1, *char_control_p2);
         std::swap(*unknown_p1, *unknown_p2);
 
         LOG(1, "[SEP] AFTER TOGGLE:\n");
-        LOG(1, "      *menu_p1 = 0x%08X\n", static_cast<unsigned int>(*menu_control_p1));
-        LOG(1, "      *menu_p2 = 0x%08X\n", static_cast<unsigned int>(*menu_control_p2));
-        LOG(1, "      *unk_p1  = 0x%08X\n", static_cast<unsigned int>(*unknown_p1));
-        LOG(1, "      *unk_p2  = 0x%08X\n", static_cast<unsigned int>(*unknown_p2));
-        LOG(1, "      *char_p1 = 0x%08X\n", static_cast<unsigned int>(*char_control_p1));
-        LOG(1, "      *char_p2 = 0x%08X\n", static_cast<unsigned int>(*char_control_p2));
+        LOG(1, "      *menu_p1 = 0x%08X\n", reinterpret_cast<unsigned int>(*menu_control_p1));
+        LOG(1, "      *menu_p2 = 0x%08X\n", reinterpret_cast<unsigned int>(*menu_control_p2));
+        LOG(1, "      *unk_p1  = 0x%08X\n", reinterpret_cast<unsigned int>(*unknown_p1));
+        LOG(1, "      *unk_p2  = 0x%08X\n", reinterpret_cast<unsigned int>(*unknown_p2));
+        LOG(1, "      *char_p1 = 0x%08X\n", reinterpret_cast<unsigned int>(*char_control_p1));
+        LOG(1, "      *char_p2 = 0x%08X\n", reinterpret_cast<unsigned int>(*char_control_p2));
 
         m_keyboardControllerSeparated = enabled;
 }
