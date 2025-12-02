@@ -462,9 +462,9 @@ void MainWindow::DrawControllerSettingSection() const {
         {
                 ImGui::HorizontalSpacing();
                 ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
-                        "Steam Input appears to be active for this game.\n"
-                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
-                        "Controller override, automatic updates, and Joy.cpl are disabled because the Steam Input wrapper can hide some controllers (even in the Windows joy.cpl list).");
+                        "Steam Input appears to be active.\n"
+                        "Controller override, auto updates, and Joy.cpl are off.\n"
+                        "Steam Input can hide some controllers.");
                 ImGui::VerticalSpacing(5);
         }
 
