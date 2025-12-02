@@ -12,6 +12,7 @@
 #include <joystickapi.h>
 #include <dbt.h>
 #include <objbase.h>
+#include <hidusage.h>
 
 #include <array>
 #include <algorithm>
