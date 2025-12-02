@@ -4,7 +4,7 @@
 #include "D3D9EXWrapper/d3d9.h"
 
 #define DEBUG_LOG_LEVEL	5 //0 = highest, 7 = lowest priority
-#define FORCE_LOGGING 0
+#define FORCE_LOGGING 1
 
 #if defined(_DEBUG) || FORCE_LOGGING == 1
 #define ENABLE_LOGGING 1

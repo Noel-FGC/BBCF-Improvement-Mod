@@ -10,7 +10,7 @@
 #include "Core/info.h"
 #include "Core/interfaces.h"
 #include "Core/ControllerOverrideManager.h"
-#include "logger.h"
+#include "Core/logger.h"
 #include "Game/gamestates.h"
 #include "Core/utils.h"
 #include "Overlay/imgui_utils.h"

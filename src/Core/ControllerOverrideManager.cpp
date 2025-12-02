@@ -17,6 +17,116 @@
 #include <cctype>
 #include <numeric>
 
+// ===== BBCF internal input glue (SystemManager + re-create controllers) =====
+
+// Opaque forward declaration – we don’t need the full struct here.
+struct AASTEAM_SystemManager;
+
+// Offsets are IMAGE_BASE-relative for the BBCF EXE, taken from BBCF.h:
+//
+// static_GameVals;                           // 008903b0
+//   AASTEAM_SystemManager* AASTEAM_SystemManager_ptr; // 008929c8
+//
+// AASTEAM_SystemManager___create_pad_input_controllers[0x1e0]; // 000722c0
+// AASTEAM_SystemManager___create_SystemKeyControler[0x160];    // 00073ef0
+//
+// We reuse GetBbcfBaseAdress() from Core/utils.h that you already call
+// for BBCF_PAD_SLOT0_PTR_OFFSET.
+namespace
+{
+    constexpr uintptr_t BBCF_SYSTEM_MANAGER_PTR_OFFSET = 0x008929C8;
+    constexpr uintptr_t BBCF_CREATE_PADS_OFFSET = 0x000722C0;
+    constexpr uintptr_t BBCF_CREATE_SYSTEMKEY_OFFSET = 0x00073EF0;
+    constexpr uintptr_t BBCF_CALL_DIRECTINPUT_OFFSET = 0x00072550;
+
+    using SM_CreatePadsFn = void(__thiscall*)(AASTEAM_SystemManager*);
+    using SM_CreateSysKeyFn = void(__thiscall*)(AASTEAM_SystemManager*);
+    using SM_CallDIFunc = void(__thiscall*)(AASTEAM_SystemManager*);
+
+    inline uintptr_t GetBbcfBase()
+    {
+        // Your utils already use this, so keep it consistent.
+        return reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
+    }
+
+    inline AASTEAM_SystemManager* GetBbcfSystemManager()
+    {
+        auto base = GetBbcfBase();
+        auto ppSystemManager =
+            reinterpret_cast<AASTEAM_SystemManager**>(base + BBCF_SYSTEM_MANAGER_PTR_OFFSET);
+        if (!ppSystemManager)
+        {
+            LOG(1, "[BBCF] GetBbcfSystemManager: pointer slot is null\n");
+            return nullptr;
+        }
+
+        auto* systemManager = *ppSystemManager;
+        LOG(1, "[BBCF] GetBbcfSystemManager: AASTEAM_SystemManager = %p (slot=%p)\n",
+            systemManager, ppSystemManager);
+        return systemManager;
+    }
+
+    inline SM_CreatePadsFn GetCreatePadsFn()
+    {
+        auto base = GetBbcfBase();
+        auto fn = reinterpret_cast<SM_CreatePadsFn>(base + BBCF_CREATE_PADS_OFFSET);
+        LOG(1, "[BBCF] GetCreatePadsFn: addr = %p\n", fn);
+        return fn;
+    }
+
+    inline SM_CreateSysKeyFn GetCreateSystemKeyFn()
+    {
+        auto base = GetBbcfBase();
+        auto fn = reinterpret_cast<SM_CreateSysKeyFn>(base + BBCF_CREATE_SYSTEMKEY_OFFSET);
+        LOG(1, "[BBCF] GetCreateSystemKeyFn: addr = %p\n", fn);
+        return fn;
+    }
+
+    inline SM_CallDIFunc GetCallDIFunc()
+    {
+        auto base = GetBbcfBase();
+        auto fn = reinterpret_cast<SM_CallDIFunc>(base + BBCF_CALL_DIRECTINPUT_OFFSET);
+        LOG(1, "[BBCF] GetCallDIFunc: addr = %p\n", fn);
+        return fn;
+    }
+
+
+    // This is the actual “rebuild controller tasks” driver.
+    void RedetectControllers_Internal()
+    {
+        auto* systemManager = GetBbcfSystemManager();
+        if (!systemManager)
+        {
+            LOG(1, "[BBCF] RedetectControllers_Internal: SystemManager is null, abort\n");
+            return;
+        }
+
+        auto callDI = GetCallDIFunc();
+        auto createPads = GetCreatePadsFn();
+        auto createSys = GetCreateSystemKeyFn();
+
+        if (!callDI || !createPads || !createSys)
+        {
+            LOG(1, "[BBCF] Missing functions: callDI=%p pads=%p sys=%p\n",
+                callDI, createPads, createSys);
+            return;
+        }
+
+        LOG(1, "[BBCF] RedetectControllers_Internal: calling _call_DirectInput8Create\n");
+        callDI(systemManager);
+
+        LOG(1, "[BBCF] RedetectControllers_Internal: calling _create_pad_input_controllers\n");
+        createPads(systemManager);
+
+        LOG(1, "[BBCF] RedetectControllers_Internal: calling _create_SystemKeyControler\n");
+        createSys(systemManager);
+
+        LOG(1, "[BBCF] RedetectControllers_Internal: done\n");
+    }
+
+} // end anonymous BBCF glue namespace
+
+
 namespace
 {
         constexpr ULONGLONG DEVICE_REFRESH_INTERVAL_MS = 1000;
@@ -216,13 +326,19 @@ void ControllerOverrideManager::RefreshDevices()
 
 void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
 {
-        LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - begin\n");
-        RefreshDevices();
-        BounceTrackedDevices();
-        DebugDumpTrackedDevices();
-        DebugLogPadSlot0();
-        SendDeviceChangeBroadcast();
-        LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - end\n");
+    LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - begin\n");
+
+    // Existing behavior: update our own view of devices + DirectInput objects
+    RefreshDevices();
+    BounceTrackedDevices();
+    DebugDumpTrackedDevices();
+    DebugLogPadSlot0();
+    SendDeviceChangeBroadcast();
+
+    // NEW: ask the game to rebuild its internal controller tasks
+    RedetectControllers_Internal();
+
+    LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - end\n");
 }
 
 void ControllerOverrideManager::TickAutoRefresh()
