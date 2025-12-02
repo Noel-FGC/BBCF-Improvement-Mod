@@ -14,6 +14,9 @@ struct ControllerDeviceInfo
         bool isKeyboard = false;
         bool isWinmmDevice = false;
         UINT winmmId = static_cast<UINT>(-1);
+        bool hasVendorProductIds = false;
+        USHORT vendorId = 0;
+        USHORT productId = 0;
 };
 
 std::string GuidToString(const GUID& guid);
