@@ -449,15 +449,6 @@ void MainWindow::DrawControllerSettingSection() const {
         controllerManager.TickAutoRefresh();
         const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
 
-        ImGui::HorizontalSpacing();
-        if (ImGui::Button("Refresh controllers"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
-                controllerManager.RefreshDevicesAndReinitializeGame();
-        }
-
-        ImGui::VerticalSpacing(5);
-
         if (steamInputLikely)
         {
                 ImGui::HorizontalSpacing();
@@ -469,49 +460,7 @@ void MainWindow::DrawControllerSettingSection() const {
         }
 
         ImGui::HorizontalSpacing();
-        if (steamInputLikely)
-        {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
-        if (ImGui::Button("Joy.cpl"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
-                controllerManager.OpenControllerControlPanel();
-        }
-        if (steamInputLikely)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
-        }
-
-        ImGui::VerticalSpacing(5);
-
-        ImGui::HorizontalSpacing();
-        bool autoRefreshEnabled = controllerManager.IsAutoRefreshEnabled();
-        if (steamInputLikely && autoRefreshEnabled)
-        {
-                controllerManager.SetAutoRefreshEnabled(false);
-                autoRefreshEnabled = false;
-        }
-        if (steamInputLikely)
-        {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
-        if (ImGui::Checkbox("Automatically Update Controllers", &autoRefreshEnabled))
-        {
-                controllerManager.SetAutoRefreshEnabled(autoRefreshEnabled);
-        }
-        ImGui::SameLine();
-        ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
-        if (steamInputLikely)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
-        }
-
-        if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
+        if (ImGui::Checkbox("Separate Keyboard and Controllers", &controller_position_swapped)) {
                 uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
                 LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
 
@@ -562,6 +511,7 @@ void MainWindow::DrawControllerSettingSection() const {
 
         ImGui::VerticalSpacing(5);
 
+        ImGui::HorizontalSpacing();
         bool overrideEnabled = controllerManager.IsOverrideEnabled();
         if (steamInputLikely && overrideEnabled)
         {
@@ -579,6 +529,59 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Choose which connected controller or the keyboard should be Player 1 and Player 2. Use Refresh when devices change.");
 
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::VerticalSpacing(5);
+
+        ImGui::HorizontalSpacing();
+        if (ImGui::Button("Refresh controllers"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
+                controllerManager.RefreshDevicesAndReinitializeGame();
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Reload the controller list and reinitialize input slots to match connected devices.");
+        ImGui::SameLine();
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (ImGui::Button("Open Joy.cpl"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
+                controllerManager.OpenControllerControlPanel();
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::VerticalSpacing(5);
+
+        ImGui::HorizontalSpacing();
+        bool autoRefreshEnabled = controllerManager.IsAutoRefreshEnabled();
+        if (steamInputLikely && autoRefreshEnabled)
+        {
+                controllerManager.SetAutoRefreshEnabled(false);
+                autoRefreshEnabled = false;
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (ImGui::Checkbox("Automatically Update Controllers", &autoRefreshEnabled))
+        {
+                controllerManager.SetAutoRefreshEnabled(autoRefreshEnabled);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
         if (steamInputLikely)
         {
                 ImGui::PopStyleVar();
