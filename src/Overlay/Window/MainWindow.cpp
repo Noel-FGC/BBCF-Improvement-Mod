@@ -447,22 +447,29 @@ void MainWindow::DrawControllerSettingSection() const {
         static bool controller_position_swapped = false;
         auto& controllerManager = ControllerOverrideManager::GetInstance();
         controllerManager.TickAutoRefresh();
+        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
+
+        static bool loggedSteamInputState = false;
+        static bool lastSteamInputState = false;
+        if (!loggedSteamInputState || lastSteamInputState != steamInputLikely)
+        {
+                LOG(1, "MainWindow::DrawControllerSettingSection - steamInputLikely=%d\n", steamInputLikely ? 1 : 0);
+                loggedSteamInputState = true;
+                lastSteamInputState = steamInputLikely;
+        }
+
+        if (steamInputLikely)
+        {
+                ImGui::HorizontalSpacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
+                        "Steam Input appears to be active for this game.\n"
+                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
+                        "Controller override, automatic updates, and Joy.cpl are disabled because the Steam Input wrapper can hide some controllers (even in the Windows joy.cpl list).");
+                ImGui::VerticalSpacing(5);
+        }
 
         ImGui::HorizontalSpacing();
-        if (ImGui::Button("Refresh controllers"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
-                controllerManager.RefreshDevicesAndReinitializeGame();
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Joy.cpl"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
-                controllerManager.OpenControllerControlPanel();
-        }
-
-        if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
+        if (ImGui::Checkbox("Separate Keyboard and Controllers", &controller_position_swapped)) {
                 uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
                 LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
 
@@ -513,96 +520,161 @@ void MainWindow::DrawControllerSettingSection() const {
 
         ImGui::VerticalSpacing(5);
 
+        ImGui::HorizontalSpacing();
         bool overrideEnabled = controllerManager.IsOverrideEnabled();
+        if (steamInputLikely && overrideEnabled)
+        {
+                controllerManager.SetOverrideEnabled(false);
+                overrideEnabled = false;
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
         if (ImGui::Checkbox("Local Controller Override", &overrideEnabled)) {
                 controllerManager.SetOverrideEnabled(overrideEnabled);
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Choose which connected controller or the keyboard should be Player 1 and Player 2. Use Refresh when devices change.");
 
-        if (!overrideEnabled)
-        {
-                return;
-        }
+        bool showOverrideControls = overrideEnabled && !steamInputLikely;
 
-        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
         if (steamInputLikely)
         {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        if (showOverrideControls)
+        {
+                ImGui::VerticalSpacing(3);
                 ImGui::HorizontalSpacing();
-                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
-                        "Steam Input appears to be active for this game.\n"
-                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
-                        "Other controller override options are hidden while Steam Input is enabled.");
-                ImGui::VerticalSpacing(5);
-                return;
-        }
-
-        const auto& devices = controllerManager.GetDevices();
-        if (devices.empty())
-        {
-                ImGui::TextDisabled("No input devices detected.");
-        }
-        else
-        {
-                auto renderPlayerSelector = [&](const char* label, int playerIndex) {
-                        GUID selection = controllerManager.GetPlayerSelection(playerIndex);
-                        const ControllerDeviceInfo* selectedInfo = nullptr;
-                        std::string preview = devices.front().name;
-                        for (const auto& device : devices)
-                        {
-                                if (IsEqualGUID(device.guid, selection))
-                                {
-                                        preview = device.name;
-                                        selectedInfo = &device;
-                                        break;
-                                }
-                        }
-
-                        if (ImGui::BeginCombo(label, preview.c_str()))
-                        {
+                const auto& devices = controllerManager.GetDevices();
+                if (devices.empty())
+                {
+                        ImGui::TextDisabled("No input devices detected.");
+                }
+                else
+                {
+                        auto renderPlayerSelector = [&](const char* label, int playerIndex) {
+                                GUID selection = controllerManager.GetPlayerSelection(playerIndex);
+                                const ControllerDeviceInfo* selectedInfo = nullptr;
+                                std::string preview = devices.front().name;
                                 for (const auto& device : devices)
                                 {
-                                        bool selected = IsEqualGUID(device.guid, selection);
-                                        if (ImGui::Selectable(device.name.c_str(), selected))
+                                        if (IsEqualGUID(device.guid, selection))
                                         {
-                                                controllerManager.SetPlayerSelection(playerIndex, device.guid);
-                                                selection = device.guid;
+                                                preview = device.name;
                                                 selectedInfo = &device;
-                                        }
-
-                                        if (selected)
-                                        {
-                                                ImGui::SetItemDefaultFocus();
+                                                break;
                                         }
                                 }
 
-                                ImGui::EndCombo();
-                        }
+                                if (ImGui::BeginCombo(label, preview.c_str()))
+                                {
+                                        for (const auto& device : devices)
+                                        {
+                                                bool selected = IsEqualGUID(device.guid, selection);
+                                                if (ImGui::Selectable(device.name.c_str(), selected))
+                                                {
+                                                        controllerManager.SetPlayerSelection(playerIndex, device.guid);
+                                                        selection = device.guid;
+                                                        selectedInfo = &device;
+                                                }
 
-                        bool disableTest = (selectedInfo && selectedInfo->isKeyboard);
-                        if (disableTest)
-                        {
-                                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-                        }
+                                                if (selected)
+                                                {
+                                                        ImGui::SetItemDefaultFocus();
+                                                }
+                                        }
 
-                        ImGui::SameLine();
-                        std::string testLabel = std::string("Test##player") + std::to_string(playerIndex + 1);
-                        if (ImGui::Button(testLabel.c_str()))
-                        {
-                                controllerManager.OpenDeviceProperties(selection);
-                        }
+                                        ImGui::EndCombo();
+                                }
 
-                        if (disableTest)
-                        {
-                                ImGui::PopStyleVar();
-                                ImGui::PopItemFlag();
-                        }
-                };
+                                bool disableTest = (selectedInfo && selectedInfo->isKeyboard);
+                                if (disableTest)
+                                {
+                                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                                        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                                }
 
-                renderPlayerSelector("Player 1 Controller", 0);
-                renderPlayerSelector("Player 2 Controller", 1);
+                                ImGui::SameLine();
+                                std::string testLabel = std::string("Test##player") + std::to_string(playerIndex + 1);
+                                if (ImGui::Button(testLabel.c_str()))
+                                {
+                                        controllerManager.OpenDeviceProperties(selection);
+                                }
+
+                                if (disableTest)
+                                {
+                                        ImGui::PopStyleVar();
+                                        ImGui::PopItemFlag();
+                                }
+                        };
+
+                        renderPlayerSelector("Player 1 Controller", 0);
+                        ImGui::HorizontalSpacing();
+                        renderPlayerSelector("Player 2 Controller", 1);
+                }
         }
+
+        ImGui::VerticalSpacing(5);
+
+        ImGui::HorizontalSpacing();
+        if (ImGui::Button("Refresh controllers"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
+                controllerManager.RefreshDevicesAndReinitializeGame();
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Reload the controller list and reinitialize input slots to match connected devices.");
+        ImGui::SameLine();
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (ImGui::Button("Open Joy.cpl"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
+                controllerManager.OpenControllerControlPanel();
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::VerticalSpacing(5);
+
+        ImGui::HorizontalSpacing();
+        bool autoRefreshEnabled = controllerManager.IsAutoRefreshEnabled();
+        if (steamInputLikely && autoRefreshEnabled)
+        {
+                controllerManager.SetAutoRefreshEnabled(false);
+                autoRefreshEnabled = false;
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (ImGui::Checkbox("Automatically Update Controllers", &autoRefreshEnabled))
+        {
+                controllerManager.SetAutoRefreshEnabled(autoRefreshEnabled);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::VerticalSpacing(3);
+        ImGui::HorizontalSpacing();
+        ImGui::TextDisabled("STEAM INPUT: %s", steamInputLikely ? "ON" : "OFF");
 }
 void MainWindow::DrawLinkButtons() const
 {
