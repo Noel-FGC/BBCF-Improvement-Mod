@@ -10,6 +10,7 @@
 #include "Core/info.h"
 #include "Core/interfaces.h"
 #include "Core/ControllerOverrideManager.h"
+#include "Core/logger.h"
 #include "Game/gamestates.h"
 #include "Core/utils.h"
 #include "Overlay/imgui_utils.h"
@@ -20,6 +21,7 @@
 #include "imgui_internal.h"
 
 #include <sstream>
+#include <utility>
 
 MainWindow::MainWindow(const std::string& windowTitle, bool windowClosable, WindowContainer& windowContainer, ImGuiWindowFlags windowFlags)
 	: IWindow(windowTitle, windowClosable, windowFlags), m_pWindowContainer(&windowContainer)
@@ -436,17 +438,50 @@ void MainWindow::DrawControllerSettingSection() const {
         controllerManager.TickAutoRefresh();
 
         if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
-                //make the battle_key_controller into a proper struck later
-                char*** battle_key_controller = (char***)(GetBbcfBaseAdress() + 0x8929c8);
+                uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
+                LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
+
+                // make the battle_key_controller into a proper struct later
+                char*** battle_key_controller = (char***)(base + 0x8929c8);
+                LOG(1, "[SEP] battle_key_controller addr = 0x%08X\n", (unsigned int)battle_key_controller);
+                LOG(1, "[SEP] *battle_key_controller (table ptr) = 0x%08X\n", (unsigned int)(*battle_key_controller));
+
+                // These are pointers to individual slot pointers
                 char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);
                 char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);
                 char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);
                 char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);
                 char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);
                 char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);
+
+                // Log the slot pointer addresses themselves
+                LOG(1, "[SEP] menu_p1 slot ptr addr = 0x%08X\n", (unsigned int)menu_control_p1);
+                LOG(1, "[SEP] menu_p2 slot ptr addr = 0x%08X\n", (unsigned int)menu_control_p2);
+                LOG(1, "[SEP] unk_p1  slot ptr addr = 0x%08X\n", (unsigned int)unknown_p1);
+                LOG(1, "[SEP] unk_p2  slot ptr addr = 0x%08X\n", (unsigned int)unknown_p2);
+                LOG(1, "[SEP] char_p1 slot ptr addr = 0x%08X\n", (unsigned int)char_control_p1);
+                LOG(1, "[SEP] char_p2 slot ptr addr = 0x%08X\n", (unsigned int)char_control_p2);
+
+                // Log what they point TO (these are “device objects” / input contexts)
+                LOG(1, "[SEP] BEFORE SWAP:\n");
+                LOG(1, "      *menu_p1 = 0x%08X\n", (unsigned int)(*menu_control_p1));
+                LOG(1, "      *menu_p2 = 0x%08X\n", (unsigned int)(*menu_control_p2));
+                LOG(1, "      *unk_p1  = 0x%08X\n", (unsigned int)(*unknown_p1));
+                LOG(1, "      *unk_p2  = 0x%08X\n", (unsigned int)(*unknown_p2));
+                LOG(1, "      *char_p1 = 0x%08X\n", (unsigned int)(*char_control_p1));
+                LOG(1, "      *char_p2 = 0x%08X\n", (unsigned int)(*char_control_p2));
+
                 std::swap(*menu_control_p1, *menu_control_p2);
                 std::swap(*char_control_p1, *char_control_p2);
                 std::swap(*unknown_p1, *unknown_p2);
+
+                LOG(1, "[SEP] AFTER SWAP:\n");
+                LOG(1, "      *menu_p1 = 0x%08X\n", (unsigned int)(*menu_control_p1));
+                LOG(1, "      *menu_p2 = 0x%08X\n", (unsigned int)(*menu_control_p2));
+                LOG(1, "      *unk_p1  = 0x%08X\n", (unsigned int)(*unknown_p1));
+                LOG(1, "      *unk_p2  = 0x%08X\n", (unsigned int)(*unknown_p2));
+                LOG(1, "      *char_p1 = 0x%08X\n", (unsigned int)(*char_control_p1));
+                LOG(1, "      *char_p2 = 0x%08X\n", (unsigned int)(*char_control_p2));
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.");
@@ -547,12 +582,14 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::HorizontalSpacing();
         if (ImGui::Button("Refresh controllers"))
         {
-                controllerManager.RefreshDevices();
+                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
+                controllerManager.RefreshDevicesAndReinitializeGame();
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Joy.cpl"))
         {
+                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
                 controllerManager.OpenControllerControlPanel();
         }
 }

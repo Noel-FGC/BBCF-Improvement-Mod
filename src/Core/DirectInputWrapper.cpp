@@ -1,6 +1,7 @@
 #include "DirectInputWrapper.h"
 
 #include "ControllerOverrideManager.h"
+#include "logger.h"
 
 #include <vector>
 
@@ -39,16 +40,25 @@ ULONG STDMETHODCALLTYPE DirectInput8AWrapper::Release()
 
 HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8A* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+        LOG(1, "DirectInput8AWrapper::CreateDevice - guid=%s\n", GuidToString(rguid).c_str());
         if (!ControllerOverrideManager::GetInstance().IsDeviceAllowed(rguid))
         {
                 return DIERR_DEVICENOTREG;
         }
 
-        return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        HRESULT result = m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        LOG(1, "DirectInput8AWrapper::CreateDevice - hr=0x%08X device=%p\n", result, lplpDirectInputDevice ? *lplpDirectInputDevice : nullptr);
+        if (SUCCEEDED(result) && lplpDirectInputDevice && *lplpDirectInputDevice)
+        {
+                ControllerOverrideManager::GetInstance().RegisterCreatedDevice(*lplpDirectInputDevice);
+        }
+
+        return result;
 }
 
 HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::EnumDevices(DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+        LOG(1, "DirectInput8AWrapper::EnumDevices - type=0x%08X flags=0x%08X\n", dwDevType, dwFlags);
         std::vector<DIDEVICEINSTANCEA> devices;
         auto collector = [](const DIDEVICEINSTANCEA* inst, LPVOID ref) -> BOOL {
                 auto* list = reinterpret_cast<std::vector<DIDEVICEINSTANCEA>*>(ref);
@@ -57,6 +67,7 @@ HRESULT STDMETHODCALLTYPE DirectInput8AWrapper::EnumDevices(DWORD dwDevType, LPD
         };
 
         HRESULT result = m_original->EnumDevices(dwDevType, collector, &devices, dwFlags);
+        LOG(1, "DirectInput8AWrapper::EnumDevices - hr=0x%08X collected=%zu\n", result, devices.size());
 
         if (FAILED(result) || !lpCallback)
         {
@@ -141,16 +152,25 @@ ULONG STDMETHODCALLTYPE DirectInput8WWrapper::Release()
 
 HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8W* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+        LOG(1, "DirectInput8WWrapper::CreateDevice - guid=%s\n", GuidToString(rguid).c_str());
         if (!ControllerOverrideManager::GetInstance().IsDeviceAllowed(rguid))
         {
                 return DIERR_DEVICENOTREG;
         }
 
-        return m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        HRESULT result = m_original->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+        LOG(1, "DirectInput8WWrapper::CreateDevice - hr=0x%08X device=%p\n", result, lplpDirectInputDevice ? *lplpDirectInputDevice : nullptr);
+        if (SUCCEEDED(result) && lplpDirectInputDevice && *lplpDirectInputDevice)
+        {
+                ControllerOverrideManager::GetInstance().RegisterCreatedDevice(*lplpDirectInputDevice);
+        }
+
+        return result;
 }
 
 HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::EnumDevices(DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+        LOG(1, "DirectInput8WWrapper::EnumDevices - type=0x%08X flags=0x%08X\n", dwDevType, dwFlags);
         std::vector<DIDEVICEINSTANCEW> devices;
         auto collector = [](const DIDEVICEINSTANCEW* inst, LPVOID ref) -> BOOL {
                 auto* list = reinterpret_cast<std::vector<DIDEVICEINSTANCEW>*>(ref);
@@ -159,6 +179,7 @@ HRESULT STDMETHODCALLTYPE DirectInput8WWrapper::EnumDevices(DWORD dwDevType, LPD
         };
 
         HRESULT result = m_original->EnumDevices(dwDevType, collector, &devices, dwFlags);
+        LOG(1, "DirectInput8WWrapper::EnumDevices - hr=0x%08X collected=%zu\n", result, devices.size());
 
         if (FAILED(result) || !lpCallback)
         {
