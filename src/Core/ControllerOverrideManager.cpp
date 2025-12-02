@@ -328,14 +328,11 @@ void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
 {
     LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - begin\n");
 
-    // Existing behavior: update our own view of devices + DirectInput objects
     RefreshDevices();
     BounceTrackedDevices();
     DebugDumpTrackedDevices();
     DebugLogPadSlot0();
     SendDeviceChangeBroadcast();
-
-    // NEW: ask the game to rebuild its internal controller tasks
     RedetectControllers_Internal();
 
     LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - end\n");
