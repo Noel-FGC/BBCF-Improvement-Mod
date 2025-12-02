@@ -229,21 +229,6 @@ namespace
                 return anyEnvHit;
         }
 
-        bool IsLikelySteamVirtualDevice(const ControllerDeviceInfo& info)
-        {
-                if (info.isKeyboard)
-                {
-                        return false;
-                }
-
-                std::string lowerName = info.name;
-                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char ch) {
-                        return static_cast<char>(std::tolower(ch));
-                });
-
-                return lowerName.find("steam virtual") != std::string::npos;
-        }
-
 }
 
 std::string GuidToString(const GUID& guid)
@@ -701,35 +686,23 @@ bool ControllerOverrideManager::CollectDevices()
                         device.isKeyboard ? 1 : 0, device.isWinmmDevice ? 1 : 0, device.winmmId);
         }
 
-        bool anyListedGamepad = false;
-        bool anySteamVirtualPad = false;
-        bool anyNonSteamVirtualPad = false;
-        for (const auto& device : m_devices)
-        {
-                if (device.isKeyboard)
-                {
-                        continue;
-                }
+	bool anyListedGamepad = false;
+	for (const auto& device : m_devices)
+	{
+		if (device.isKeyboard)
+		{
+			continue;
+		}
 
-                anyListedGamepad = true;
-                if (IsLikelySteamVirtualDevice(device))
-                {
-                        anySteamVirtualPad = true;
-                }
-                else
-                {
-                        anyNonSteamVirtualPad = true;
-                }
-        }
+		anyListedGamepad = true;
+	}
 
-        LOG(1, "[SteamInputDetect] anyListedGamepad=%d anySteamVirtualPad=%d anyNonSteamVirtualPad=%d\n",
-                anyListedGamepad ? 1 : 0, anySteamVirtualPad ? 1 : 0, anyNonSteamVirtualPad ? 1 : 0);
+	LOG(1, "[SteamInputDetect] anyListedGamepad=%d\n", anyListedGamepad ? 1 : 0);
 
-        bool steamDevicesOnly = anyListedGamepad && anySteamVirtualPad && !anyNonSteamVirtualPad;
-        m_steamInputLikely = m_steamInputLikely && steamDevicesOnly;
+	m_steamInputLikely = m_steamInputLikely && anyListedGamepad;
 
-        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d steamDevicesOnly=%d)\n",
-                m_steamInputLikely ? 1 : 0, envLikely ? 1 : 0, steamDevicesOnly ? 1 : 0);
+	LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d anyListedGamepad=%d)\n",
+		m_steamInputLikely ? 1 : 0, envLikely ? 1 : 0, anyListedGamepad ? 1 : 0);
 
         return diSuccess || !winmmDevices.empty();
 }
