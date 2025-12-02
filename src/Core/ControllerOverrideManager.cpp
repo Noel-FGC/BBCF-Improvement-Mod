@@ -146,7 +146,6 @@ namespace
 
 namespace
 {
-        constexpr ULONGLONG DEVICE_REFRESH_INTERVAL_MS = 1000;
         constexpr UINT WINMM_INVALID_ID = static_cast<UINT>(-1);
         constexpr uintptr_t BBCF_PAD_SLOT0_PTR_OFFSET = 0x104FA298;
 
@@ -409,6 +408,11 @@ int written = StringFromGUID2(guid, buf, kBufferCount);
         return output;
 }
 
+extern "C" void HandleControllerWndProcMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+        ControllerOverrideManager::GetInstance().HandleWindowMessage(msg, wParam, lParam);
+}
+
 ControllerOverrideManager& ControllerOverrideManager::GetInstance()
 {
         static ControllerOverrideManager instance;
@@ -465,14 +469,17 @@ const std::vector<ControllerDeviceInfo>& ControllerOverrideManager::GetDevices()
         return m_devices;
 }
 
-void ControllerOverrideManager::RefreshDevices()
+bool ControllerOverrideManager::RefreshDevices()
 {
         LOG(1, "ControllerOverrideManager::RefreshDevices - begin (override=%d)\n", m_overrideEnabled ? 1 : 0);
+        const size_t previousHash = m_lastDeviceHash;
         CollectDevices();
         EnsureSelectionsValid();
         m_lastRefresh = GetTickCount64();
         m_lastDeviceHash = HashDevices(m_devices);
-        LOG(1, "ControllerOverrideManager::RefreshDevices - end (devices=%zu, hash=%zu)\n", m_devices.size(), m_lastDeviceHash);
+        const bool devicesChanged = (m_lastDeviceHash != previousHash);
+        LOG(1, "ControllerOverrideManager::RefreshDevices - end (devices=%zu, hash=%zu changed=%d)\n", m_devices.size(), m_lastDeviceHash, devicesChanged ? 1 : 0);
+        return devicesChanged;
 }
 
 void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
@@ -480,43 +487,20 @@ void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
     LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - begin\n");
 
     RefreshDevices();
-    BounceTrackedDevices();
-    DebugDumpTrackedDevices();
-    DebugLogPadSlot0();
-    SendDeviceChangeBroadcast();
-    RedetectControllers_Internal();
+    ReinitializeGameInputs();
 
     LOG(1, "ControllerOverrideManager::RefreshDevicesAndReinitializeGame - end\n");
 }
 
 void ControllerOverrideManager::TickAutoRefresh()
 {
-        ULONGLONG now = GetTickCount64();
-        if (now - m_lastRefresh < DEVICE_REFRESH_INTERVAL_MS)
+        if (!m_deviceChangeQueued.load())
         {
                 return;
         }
 
-        bool devicesChanged = false;
-        if (CollectDevices())
-        {
-                size_t newHash = HashDevices(m_devices);
-                if (newHash != m_lastDeviceHash)
-                {
-                        EnsureSelectionsValid();
-                        m_lastDeviceHash = newHash;
-                        devicesChanged = true;
-                        LOG(1, "ControllerOverrideManager::TickAutoRefresh - device hash changed (devices=%zu, hash=%zu)\n", m_devices.size(), m_lastDeviceHash);
-                }
-        }
-
-        m_lastRefresh = now;
-
-        if (devicesChanged && m_autoRefreshEnabled)
-        {
-                LOG(1, "ControllerOverrideManager::TickAutoRefresh - auto refreshing controllers\n");
-                RefreshDevicesAndReinitializeGame();
-        }
+        m_deviceChangeQueued = false;
+        ProcessPendingDeviceChange();
 }
 
 void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8A* device)
@@ -614,6 +598,60 @@ void ControllerOverrideManager::SendDeviceChangeBroadcast() const
 
         SendMessageTimeout(g_gameProc.hWndGameWindow, WM_DEVICECHANGE, DBT_DEVNODES_CHANGED, 0, SMTO_ABORTIFHUNG, 50, nullptr);
         LOG(1, "ControllerOverrideManager::SendDeviceChangeBroadcast - sent WM_DEVICECHANGE to %p\n", g_gameProc.hWndGameWindow);
+}
+
+void ControllerOverrideManager::ReinitializeGameInputs()
+{
+        BounceTrackedDevices();
+        DebugDumpTrackedDevices();
+        DebugLogPadSlot0();
+        SendDeviceChangeBroadcast();
+        RedetectControllers_Internal();
+}
+
+void ControllerOverrideManager::ProcessPendingDeviceChange()
+{
+        LOG(1, "ControllerOverrideManager::ProcessPendingDeviceChange - begin (autoRefresh=%d)\n", m_autoRefreshEnabled ? 1 : 0);
+
+        m_deviceChangeQueued = false;
+
+        const bool devicesChanged = RefreshDevices();
+        if (!devicesChanged)
+        {
+                LOG(1, "ControllerOverrideManager::ProcessPendingDeviceChange - device hash unchanged, skipping reinitialize\n");
+                return;
+        }
+
+        if (m_autoRefreshEnabled)
+        {
+                LOG(1, "ControllerOverrideManager::ProcessPendingDeviceChange - auto refreshing controllers\n");
+                ReinitializeGameInputs();
+        }
+        else
+        {
+                LOG(1, "ControllerOverrideManager::ProcessPendingDeviceChange - devices updated, auto refresh disabled\n");
+        }
+}
+
+void ControllerOverrideManager::HandleWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+        if (msg != WM_DEVICECHANGE)
+        {
+                return;
+        }
+
+        switch (wParam)
+        {
+        case DBT_DEVICEARRIVAL:
+        case DBT_DEVICEREMOVECOMPLETE:
+        case DBT_DEVNODES_CHANGED:
+                LOG(1, "ControllerOverrideManager::HandleWindowMessage - WM_DEVICECHANGE wParam=0x%08lX lParam=0x%08lX\n", wParam, lParam);
+                m_deviceChangeQueued = true;
+                ProcessPendingDeviceChange();
+                break;
+        default:
+                break;
+        }
 }
 
 void ControllerOverrideManager::ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const
