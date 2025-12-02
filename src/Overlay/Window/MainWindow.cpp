@@ -444,7 +444,6 @@ void MainWindow::DrawGameplaySettingSection() const
 void MainWindow::DrawControllerSettingSection() const {
         if (!ImGui::CollapsingHeader("Controller Settings"))
                 return;
-        static bool controller_position_swapped = false;
         auto& controllerManager = ControllerOverrideManager::GetInstance();
         controllerManager.TickAutoRefresh();
         const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
@@ -466,62 +465,21 @@ void MainWindow::DrawControllerSettingSection() const {
                         "This will disable some of this section's features.");
 				ImGui::SameLine();
 				ImGui::ShowHelpMarker(
-					"The internal behavior of Steam Input hides some controllers from the game's process, thus making some controller related features impossible/work in unintended ways.\n"
-					"\n"
-					"The disabled features include:\n"
-					"- Local Controller Override\n"
-					"- Opening Joy.cpl\n"
-					"- Automatic Updating of Controllers"
-				);
+                                        "The internal behavior of Steam Input hides some controllers from the game's process, thus making some controller related features impossible/work in unintended ways.\n"
+                                        "\n"
+                                        "The disabled features include:\n"
+                                        "- Local Controller Override\n"
+                                        "- Opening Joy.cpl"
+                                );
                 ImGui::VerticalSpacing(5);
         }
 
         ImGui::HorizontalSpacing();
+        bool controller_position_swapped = controllerManager.IsKeyboardControllerSeparated();
         if (ImGui::Checkbox("Separate Keyboard and Controllers", &controller_position_swapped)) {
-                uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
-                LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
-
-                // make the battle_key_controller into a proper struct later
-                char*** battle_key_controller = (char***)(base + 0x8929c8);
-                LOG(1, "[SEP] battle_key_controller addr = 0x%08X\n", (unsigned int)battle_key_controller);
-                LOG(1, "[SEP] *battle_key_controller (table ptr) = 0x%08X\n", (unsigned int)(*battle_key_controller));
-
-                // These are pointers to individual slot pointers
-                char** menu_control_p1 = (char**)((char*)*battle_key_controller + 0x10);
-                char** menu_control_p2 = (char**)((char*)*battle_key_controller + 0x14);
-                char** unknown_p1 = (char**)((char*)*battle_key_controller + 0x1C);
-                char** unknown_p2 = (char**)((char*)*battle_key_controller + 0x20);
-                char** char_control_p1 = (char**)((char*)*battle_key_controller + 0x24);
-                char** char_control_p2 = (char**)((char*)*battle_key_controller + 0x28);
-
-                // Log the slot pointer addresses themselves
-                LOG(1, "[SEP] menu_p1 slot ptr addr = 0x%08X\n", (unsigned int)menu_control_p1);
-                LOG(1, "[SEP] menu_p2 slot ptr addr = 0x%08X\n", (unsigned int)menu_control_p2);
-                LOG(1, "[SEP] unk_p1  slot ptr addr = 0x%08X\n", (unsigned int)unknown_p1);
-                LOG(1, "[SEP] unk_p2  slot ptr addr = 0x%08X\n", (unsigned int)unknown_p2);
-                LOG(1, "[SEP] char_p1 slot ptr addr = 0x%08X\n", (unsigned int)char_control_p1);
-                LOG(1, "[SEP] char_p2 slot ptr addr = 0x%08X\n", (unsigned int)char_control_p2);
-
-                // Log what they point TO (these are “device objects” / input contexts)
-                LOG(1, "[SEP] BEFORE SWAP:\n");
-                LOG(1, "      *menu_p1 = 0x%08X\n", (unsigned int)(*menu_control_p1));
-                LOG(1, "      *menu_p2 = 0x%08X\n", (unsigned int)(*menu_control_p2));
-                LOG(1, "      *unk_p1  = 0x%08X\n", (unsigned int)(*unknown_p1));
-                LOG(1, "      *unk_p2  = 0x%08X\n", (unsigned int)(*unknown_p2));
-                LOG(1, "      *char_p1 = 0x%08X\n", (unsigned int)(*char_control_p1));
-                LOG(1, "      *char_p2 = 0x%08X\n", (unsigned int)(*char_control_p2));
-
-                std::swap(*menu_control_p1, *menu_control_p2);
-                std::swap(*char_control_p1, *char_control_p2);
-                std::swap(*unknown_p1, *unknown_p2);
-
-                LOG(1, "[SEP] AFTER SWAP:\n");
-                LOG(1, "      *menu_p1 = 0x%08X\n", (unsigned int)(*menu_control_p1));
-                LOG(1, "      *menu_p2 = 0x%08X\n", (unsigned int)(*menu_control_p2));
-                LOG(1, "      *unk_p1  = 0x%08X\n", (unsigned int)(*unknown_p1));
-                LOG(1, "      *unk_p2  = 0x%08X\n", (unsigned int)(*unknown_p2));
-                LOG(1, "      *char_p1 = 0x%08X\n", (unsigned int)(*char_control_p1));
-                LOG(1, "      *char_p2 = 0x%08X\n", (unsigned int)(*char_control_p2));
+                controllerManager.SetKeyboardControllerSeparated(controller_position_swapped);
+                Settings::settingsIni.separateKeyboardAndControllers = controller_position_swapped;
+                Settings::changeSetting("SeparateKeyboardAndControllers", controller_position_swapped ? "1" : "0");
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.");
@@ -658,27 +616,14 @@ void MainWindow::DrawControllerSettingSection() const {
 
         ImGui::HorizontalSpacing();
         bool autoRefreshEnabled = controllerManager.IsAutoRefreshEnabled();
-        if (steamInputLikely && autoRefreshEnabled)
-        {
-                controllerManager.SetAutoRefreshEnabled(false);
-                autoRefreshEnabled = false;
-        }
-        if (steamInputLikely)
-        {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
         if (ImGui::Checkbox("Automatically Update Controllers", &autoRefreshEnabled))
         {
                 controllerManager.SetAutoRefreshEnabled(autoRefreshEnabled);
+                Settings::settingsIni.autoUpdateControllers = autoRefreshEnabled;
+                Settings::changeSetting("AutomaticallyUpdateControllers", autoRefreshEnabled ? "1" : "0");
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
-        if (steamInputLikely)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
-        }
 
         ImGui::VerticalSpacing(3);
         ImGui::HorizontalSpacing();
