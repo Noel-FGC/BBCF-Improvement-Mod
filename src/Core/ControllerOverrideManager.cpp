@@ -19,7 +19,7 @@
 
 // ===== BBCF internal input glue (SystemManager + re-create controllers) =====
 
-// Opaque forward declaration – we don’t need the full struct here.
+// Opaque forward declaration - we don't need the full struct here.
 struct AASTEAM_SystemManager;
 
 // Offsets are IMAGE_BASE-relative for the BBCF EXE, taken from BBCF.h:
@@ -91,7 +91,7 @@ namespace
     }
 
 
-    // This is the actual “rebuild controller tasks” driver.
+    // This is the actual "rebuild controller tasks" driver.
     void RedetectControllers_Internal()
     {
         auto* systemManager = GetBbcfSystemManager();
@@ -213,15 +213,20 @@ namespace
                         L"SDL_ENABLE_STEAM_CONTROLLERS",
                 };
 
+                bool anyEnvHit = false;
                 for (auto name : kSteamEnvVars)
                 {
-                        if (GetEnvironmentVariableW(name, nullptr, 0) > 0)
+                        DWORD length = GetEnvironmentVariableW(name, nullptr, 0);
+                        LOG(1, "[SteamInputDetect] env '%S' len=%lu\n", name, length);
+                        if (length > 0)
                         {
+                                anyEnvHit = true;
                                 return true;
                         }
                 }
 
-                return false;
+                LOG(1, "[SteamInputDetect] no env hints found\n");
+                return anyEnvHit;
         }
 
         bool IsLikelySteamVirtualDevice(const ControllerDeviceInfo& info)
@@ -655,7 +660,8 @@ void ControllerOverrideManager::EnsureSelectionsValid()
 bool ControllerOverrideManager::CollectDevices()
 {
         LOG(1, "ControllerOverrideManager::CollectDevices - begin\n");
-        m_steamInputLikely = IsProbablySteamInputActive();
+        bool envLikely = IsProbablySteamInputActive();
+        m_steamInputLikely = envLikely;
 
         std::vector<ControllerDeviceInfo> directInputDevices;
         bool diSuccess = TryEnumerateDevicesW(directInputDevices);
@@ -685,8 +691,8 @@ bool ControllerOverrideManager::CollectDevices()
 
         m_devices.swap(devices);
 
-        LOG(1, "ControllerOverrideManager::CollectDevices - steamInputLikely=%d diSuccess=%d diCount=%zu winmmCount=%zu total=%zu\n",
-                m_steamInputLikely ? 1 : 0, diSuccess ? 1 : 0, directInputDevices.size(), winmmDevices.size(), m_devices.size());
+        LOG(1, "ControllerOverrideManager::CollectDevices - envLikely=%d steamInputLikely=%d diSuccess=%d diCount=%zu winmmCount=%zu total=%zu\n",
+                envLikely ? 1 : 0, m_steamInputLikely ? 1 : 0, diSuccess ? 1 : 0, directInputDevices.size(), winmmDevices.size(), m_devices.size());
 
         for (size_t i = 0; i < m_devices.size(); ++i)
         {
@@ -716,7 +722,14 @@ bool ControllerOverrideManager::CollectDevices()
                 }
         }
 
-        m_steamInputLikely = m_steamInputLikely && anyListedGamepad && anySteamVirtualPad && !anyNonSteamVirtualPad;
+        LOG(1, "[SteamInputDetect] anyListedGamepad=%d anySteamVirtualPad=%d anyNonSteamVirtualPad=%d\n",
+                anyListedGamepad ? 1 : 0, anySteamVirtualPad ? 1 : 0, anyNonSteamVirtualPad ? 1 : 0);
+
+        bool steamDevicesOnly = anyListedGamepad && anySteamVirtualPad && !anyNonSteamVirtualPad;
+        m_steamInputLikely = m_steamInputLikely && steamDevicesOnly;
+
+        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d steamDevicesOnly=%d)\n",
+                m_steamInputLikely ? 1 : 0, envLikely ? 1 : 0, steamDevicesOnly ? 1 : 0);
 
         return diSuccess || !winmmDevices.empty();
 }
