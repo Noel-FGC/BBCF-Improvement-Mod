@@ -26,6 +26,9 @@ public:
         void SetOverrideEnabled(bool enabled);
         bool IsOverrideEnabled() const;
 
+        void SetAutoRefreshEnabled(bool enabled);
+        bool IsAutoRefreshEnabled() const;
+
         void SetPlayerSelection(int playerIndex, const GUID& guid);
         GUID GetPlayerSelection(int playerIndex) const;
 
@@ -72,6 +75,7 @@ private:
         std::vector<ControllerDeviceInfo> m_devices;
         GUID m_playerSelections[2];
         bool m_overrideEnabled = false;
+        bool m_autoRefreshEnabled = false;
         ULONGLONG m_lastRefresh = 0;
         size_t m_lastDeviceHash = 0;
         bool m_steamInputLikely = false;

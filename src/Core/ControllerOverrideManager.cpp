@@ -19,7 +19,7 @@
 
 // ===== BBCF internal input glue (SystemManager + re-create controllers) =====
 
-// Opaque forward declaration ñ we donít need the full struct here.
+// Opaque forward declaration ‚Äì we don‚Äôt need the full struct here.
 struct AASTEAM_SystemManager;
 
 // Offsets are IMAGE_BASE-relative for the BBCF EXE, taken from BBCF.h:
@@ -91,7 +91,7 @@ namespace
     }
 
 
-    // This is the actual ìrebuild controller tasksî driver.
+    // This is the actual ‚Äúrebuild controller tasks‚Äù driver.
     void RedetectControllers_Internal()
     {
         auto* systemManager = GetBbcfSystemManager();
@@ -292,6 +292,16 @@ bool ControllerOverrideManager::IsOverrideEnabled() const
         return m_overrideEnabled;
 }
 
+void ControllerOverrideManager::SetAutoRefreshEnabled(bool enabled)
+{
+        m_autoRefreshEnabled = enabled;
+}
+
+bool ControllerOverrideManager::IsAutoRefreshEnabled() const
+{
+        return m_autoRefreshEnabled;
+}
+
 void ControllerOverrideManager::SetPlayerSelection(int playerIndex, const GUID& guid)
 {
         if (playerIndex < 0 || playerIndex > 1)
@@ -343,11 +353,13 @@ void ControllerOverrideManager::RefreshDevicesAndReinitializeGame()
 
 void ControllerOverrideManager::TickAutoRefresh()
 {
-        if (GetTickCount64() - m_lastRefresh < DEVICE_REFRESH_INTERVAL_MS)
+        ULONGLONG now = GetTickCount64();
+        if (now - m_lastRefresh < DEVICE_REFRESH_INTERVAL_MS)
         {
                 return;
         }
 
+        bool devicesChanged = false;
         if (CollectDevices())
         {
                 size_t newHash = HashDevices(m_devices);
@@ -355,11 +367,18 @@ void ControllerOverrideManager::TickAutoRefresh()
                 {
                         EnsureSelectionsValid();
                         m_lastDeviceHash = newHash;
+                        devicesChanged = true;
                         LOG(1, "ControllerOverrideManager::TickAutoRefresh - device hash changed (devices=%zu, hash=%zu)\n", m_devices.size(), m_lastDeviceHash);
                 }
         }
 
-        m_lastRefresh = GetTickCount64();
+        m_lastRefresh = now;
+
+        if (devicesChanged && m_autoRefreshEnabled)
+        {
+                LOG(1, "ControllerOverrideManager::TickAutoRefresh - auto refreshing controllers\n");
+                RefreshDevicesAndReinitializeGame();
+        }
 }
 
 void ControllerOverrideManager::RegisterCreatedDevice(IDirectInputDevice8A* device)

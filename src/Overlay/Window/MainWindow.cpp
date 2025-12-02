@@ -447,6 +447,7 @@ void MainWindow::DrawControllerSettingSection() const {
         static bool controller_position_swapped = false;
         auto& controllerManager = ControllerOverrideManager::GetInstance();
         controllerManager.TickAutoRefresh();
+        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
 
         ImGui::HorizontalSpacing();
         if (ImGui::Button("Refresh controllers"))
@@ -455,11 +456,59 @@ void MainWindow::DrawControllerSettingSection() const {
                 controllerManager.RefreshDevicesAndReinitializeGame();
         }
 
-        ImGui::SameLine();
+        ImGui::VerticalSpacing(5);
+
+        if (steamInputLikely)
+        {
+                ImGui::HorizontalSpacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
+                        "Steam Input appears to be active for this game.\n"
+                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
+                        "Controller override, automatic updates, and Joy.cpl are disabled because the Steam Input wrapper can hide some controllers (even in the Windows joy.cpl list).");
+                ImGui::VerticalSpacing(5);
+        }
+
+        ImGui::HorizontalSpacing();
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
         if (ImGui::Button("Joy.cpl"))
         {
                 LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
                 controllerManager.OpenControllerControlPanel();
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        ImGui::VerticalSpacing(5);
+
+        ImGui::HorizontalSpacing();
+        bool autoRefreshEnabled = controllerManager.IsAutoRefreshEnabled();
+        if (steamInputLikely && autoRefreshEnabled)
+        {
+                controllerManager.SetAutoRefreshEnabled(false);
+                autoRefreshEnabled = false;
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+        if (ImGui::Checkbox("Automatically Update Controllers", &autoRefreshEnabled))
+        {
+                controllerManager.SetAutoRefreshEnabled(autoRefreshEnabled);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
+        if (steamInputLikely)
+        {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
         }
 
         if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
@@ -514,26 +563,30 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::VerticalSpacing(5);
 
         bool overrideEnabled = controllerManager.IsOverrideEnabled();
+        if (steamInputLikely && overrideEnabled)
+        {
+                controllerManager.SetOverrideEnabled(false);
+                overrideEnabled = false;
+        }
+        if (steamInputLikely)
+        {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
         if (ImGui::Checkbox("Local Controller Override", &overrideEnabled)) {
                 controllerManager.SetOverrideEnabled(overrideEnabled);
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Choose which connected controller or the keyboard should be Player 1 and Player 2. Use Refresh when devices change.");
 
-        if (!overrideEnabled)
-        {
-                return;
-        }
-
-        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
         if (steamInputLikely)
         {
-                ImGui::HorizontalSpacing();
-                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
-                        "Steam Input appears to be active for this game.\n"
-                        "Disable it in Steam's per-game Controller settings to configure physical controllers here.\n"
-                        "Other controller override options are hidden while Steam Input is enabled.");
-                ImGui::VerticalSpacing(5);
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+        }
+
+        if (steamInputLikely || !overrideEnabled)
+        {
                 return;
         }
 
