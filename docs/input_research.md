@@ -1,5 +1,7 @@
 # Input reverse-engineering notes
 
+_These findings are cross-referenced against the Ghidra exports shared by **tadatys** in the [BBCF-Ghidra repository](https://github.com/Tadatys/BBCF-Ghidra), which live in `docs/Research/Tadatys-BBCF-Ghidra/` for future contributors._
+
 ## How the keyboard/controller split was discovered
 - The toggle does not call any documented API. Instead, it writes directly into the game's `battle_key_controller` table at `GetBbcfBaseAdress() + 0x8929c8`, swapping four pointer slots between the two players (menu controls, two auxiliary slots, and character controls).
 - The code treats the table as an opaque block of pointers rather than a declared struct, which implies the layout and address were obtained by inspecting the game's memory (e.g., Cheat Engine or Ghidra) rather than headers.
