@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 struct ControllerDeviceInfo
 {
@@ -39,9 +40,11 @@ public:
 
         bool IsSteamInputLikelyActive() const { return m_steamInputLikely; }
 
-        void RefreshDevices();
+        bool RefreshDevices();
         void RefreshDevicesAndReinitializeGame();
         void TickAutoRefresh();
+
+        void HandleWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam);
 
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEA>& devices) const;
         void ApplyOrdering(std::vector<DIDEVICEINSTANCEW>& devices) const;
@@ -74,6 +77,8 @@ private:
 
         void BounceTrackedDevices();
         void SendDeviceChangeBroadcast() const;
+        void ReinitializeGameInputs();
+        void ProcessPendingDeviceChange();
 
         std::vector<ControllerDeviceInfo> m_devices;
         GUID m_playerSelections[2];
@@ -82,6 +87,7 @@ private:
         ULONGLONG m_lastRefresh = 0;
         size_t m_lastDeviceHash = 0;
         bool m_steamInputLikely = false;
+        std::atomic<bool> m_deviceChangeQueued{ false };
 
         std::vector<IDirectInputDevice8A*> m_trackedDevicesA;
         std::vector<IDirectInputDevice8W*> m_trackedDevicesW;
