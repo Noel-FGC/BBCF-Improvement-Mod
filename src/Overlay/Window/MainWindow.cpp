@@ -62,14 +62,25 @@ void MainWindow::Draw()
 	ImGui::Text("Toggle me with %s", Settings::settingsIni.togglebutton.c_str());
 	ImGui::Text("Toggle Online with %s", Settings::settingsIni.toggleOnlineButton.c_str());
 	ImGui::Text("Toggle HUD with %s", Settings::settingsIni.toggleHUDbutton.c_str());
-	ImGui::Separator();
+        ImGui::Separator();
 
-	ImGui::VerticalSpacing(5);
+        ImGui::VerticalSpacing(5);
 
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("P$"); ImGui::SameLine();
-	if (g_gameVals.pGameMoney)
-	{
+        ImGui::HorizontalSpacing();
+        bool generateDebugLogs = Settings::settingsIni.generateDebugLogs;
+        if (ImGui::Checkbox("Generate Debug Logs", &generateDebugLogs))
+        {
+                Settings::settingsIni.generateDebugLogs = generateDebugLogs;
+                Settings::changeSetting("GenerateDebugLogs", generateDebugLogs ? "1" : "0");
+                SetLoggingEnabled(generateDebugLogs);
+        }
+        ImGui::SameLine();
+        ImGui::ShowHelpMarker("Write DEBUG.txt with detailed runtime information. Saved to settings.ini for future sessions.");
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("P$"); ImGui::SameLine();
+        if (g_gameVals.pGameMoney)
+        {
 		ImGui::InputInt("##P$", *&g_gameVals.pGameMoney);
 	}
 
@@ -437,6 +448,20 @@ void MainWindow::DrawControllerSettingSection() const {
         auto& controllerManager = ControllerOverrideManager::GetInstance();
         controllerManager.TickAutoRefresh();
 
+        ImGui::HorizontalSpacing();
+        if (ImGui::Button("Refresh controllers"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
+                controllerManager.RefreshDevicesAndReinitializeGame();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Joy.cpl"))
+        {
+                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
+                controllerManager.OpenControllerControlPanel();
+        }
+
         if (ImGui::Checkbox("Separate keyboard and controllers.", &controller_position_swapped)) {
                 uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
                 LOG(1, "[SEP] GetBbcfBaseAdress() = 0x%08X\n", (unsigned int)base);
@@ -577,20 +602,6 @@ void MainWindow::DrawControllerSettingSection() const {
 
                 renderPlayerSelector("Player 1 Controller", 0);
                 renderPlayerSelector("Player 2 Controller", 1);
-        }
-
-        ImGui::HorizontalSpacing();
-        if (ImGui::Button("Refresh controllers"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Refresh controllers clicked\n");
-                controllerManager.RefreshDevicesAndReinitializeGame();
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Joy.cpl"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
-                controllerManager.OpenControllerControlPanel();
         }
 }
 void MainWindow::DrawLinkButtons() const

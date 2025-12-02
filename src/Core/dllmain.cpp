@@ -89,25 +89,32 @@ bool LoadOriginalDinputDll()
 
 DWORD WINAPI BBCF_IM_Start(HMODULE hModule)
 {
-	openLogger();
+        if (!Settings::loadSettingsFile())
+        {
+                ExitProcess(0);
+        }
 
-	LOG(1, "Starting BBCF_IM_Start thread\n");
+        SetLoggingEnabled(Settings::settingsIni.generateDebugLogs);
 
-	CreateCustomDirectories();
-	SetUnhandledExceptionFilter(UnhandledExFilter);
+        if (Settings::WasDebugLoggingSettingMissing())
+        {
+                LOG(2, "GenerateDebugLogs setting missing in settings.ini; defaulting to enabled and adding it automatically.\n");
+                Settings::changeSetting("GenerateDebugLogs", Settings::settingsIni.generateDebugLogs ? "1" : "0");
+        }
 
-	if (!Settings::loadSettingsFile())
-	{
-		ExitProcess(0);
-	}
-	logSettingsIni();
-	Settings::initSavedSettings();
+        LOG(1, "Starting BBCF_IM_Start thread\n");
 
-	if (!LoadOriginalDinputDll())
-	{
-		MessageBoxA(nullptr, "Could not load original dinput8.dll!", "BBCFIM", MB_OK);
-		ExitProcess(0);
-	}
+        CreateCustomDirectories();
+        SetUnhandledExceptionFilter(UnhandledExFilter);
+
+        logSettingsIni();
+        Settings::initSavedSettings();
+
+        if (!LoadOriginalDinputDll())
+        {
+                MessageBoxA(nullptr, "Could not load original dinput8.dll!", "BBCFIM", MB_OK);
+                ExitProcess(0);
+        }
 
         if (!placeHooks_detours())
         {
@@ -119,7 +126,7 @@ DWORD WINAPI BBCF_IM_Start(HMODULE hModule)
 
         g_interfaces.pPaletteManager = new PaletteManager();
 
-	return 0;
+        return 0;
 }
 
 BOOL WINAPI DllMain(HMODULE hinstDLL, DWORD ul_reason_for_call, LPVOID lpReserved)
