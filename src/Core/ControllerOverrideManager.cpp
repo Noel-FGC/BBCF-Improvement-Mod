@@ -783,7 +783,7 @@ bool ControllerOverrideManager::CollectDevices()
 {
         LOG(1, "ControllerOverrideManager::CollectDevices - begin\n");
         auto envInfo = GetSteamInputEnvInfo();
-        m_steamInputLikely = envInfo.anyEnvHit;
+        const bool envLikely = envInfo.anyEnvHit && envInfo.ignoreDeviceEntryCount > 0;
 
         std::vector<RawInputDeviceInfo> rawInputDevices = EnumerateRawInputDevices();
 
@@ -865,14 +865,19 @@ bool ControllerOverrideManager::CollectDevices()
 
         bool steamModuleLoaded = IsSteamInputModuleLoaded();
         bool rawSuggestsFiltering = (!rawInputDevices.empty() && rawInputDevices.size() > diGamepadCount) || rawDeviceMissingInDirectInput;
+        bool winmmSuggestsFiltering = !winmmDevices.empty() && winmmDevices.size() > diGamepadCount;
 
-        m_steamInputLikely = (envInfo.anyEnvHit || steamModuleLoaded) && (steamModuleLoaded || rawSuggestsFiltering) && anyListedGamepad;
+        // Consider Steam Input active only when (a) Steam's runtime is present or its SDL env vars are populated,
+        // (b) we see evidence of controller filtering (raw HID or WinMM shows more pads than DirectInput), and
+        // (c) at least one gamepad remains visible to DirectInput.
+        m_steamInputLikely = (envLikely || steamModuleLoaded) && (rawSuggestsFiltering || winmmSuggestsFiltering) && anyListedGamepad;
 
-        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envAny=%d moduleLoaded=%d rawSuggestsFiltering=%d rawMissing=%d rawCount=%zu envIgnoreEntries=%zu)\n",
+        LOG(1, "[SteamInputDetect] final steamInputLikely=%d (envLikely=%d moduleLoaded=%d rawSuggestsFiltering=%d winmmSuggestsFiltering=%d rawMissing=%d rawCount=%zu envIgnoreEntries=%zu)\n",
                 m_steamInputLikely ? 1 : 0,
-                envInfo.anyEnvHit ? 1 : 0,
+                envLikely ? 1 : 0,
                 steamModuleLoaded ? 1 : 0,
                 rawSuggestsFiltering ? 1 : 0,
+                winmmSuggestsFiltering ? 1 : 0,
                 rawDeviceMissingInDirectInput ? 1 : 0,
                 rawInputDevices.size(),
                 envInfo.ignoreDeviceEntryCount);
