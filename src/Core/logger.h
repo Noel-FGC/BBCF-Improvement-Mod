@@ -5,14 +5,24 @@
 
 #define DEBUG_LOG_LEVEL 5 //0 = highest, 7 = lowest priority
 
-#define LOG(_level, _str, ...) { \
-        if (IsLoggingEnabled() && DEBUG_LOG_LEVEL >= _level) { logger(_str, __VA_ARGS__); }}
+#define LOG(_level, ...)                                                                                                  \
+        {                                                                                                                 \
+                if (IsLoggingEnabled() && DEBUG_LOG_LEVEL >= _level)                                                      \
+                {                                                                                                         \
+                        logger(__VA_ARGS__);                                                                              \
+                }                                                                                                         \
+        }
 
 //Use this to log in naked asm functions
-#define LOG_ASM(_level, _str, ...) { \
-        __asm{__asm pushad }; \
-        if (IsLoggingEnabled() && DEBUG_LOG_LEVEL >= _level) { {logger(_str, __VA_ARGS__);} } \
-        __asm{__asm popad }; }
+#define LOG_ASM(_level, ...)                                                                                              \
+        {                                                                                                                 \
+                __asm{__asm pushad };                                                                                     \
+                if (IsLoggingEnabled() && DEBUG_LOG_LEVEL >= _level)                                                      \
+                {                                                                                                         \
+                        { logger(__VA_ARGS__); }                                                                          \
+                }                                                                                                         \
+                __asm{__asm popad };                                                                                      \
+        }
 
 void logger(const char* message, ...);
 void openLogger();
