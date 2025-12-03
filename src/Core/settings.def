@@ -20,6 +20,7 @@ SETTING(int, menusize, "MenuSize", "2");
 SETTING(bool, notifications, "Notifications", "1");
 SETTING(bool, checkupdates, "CheckUpdates", "1");
 SETTING(bool, generateDebugLogs, "GenerateDebugLogs", "1");
+SETTING(bool, enableInDevelopmentFeatures, "EnableInDevelopmentFeatures", "0");
 SETTING(bool, loadforeignpalettes, "LoadForeignPalettesToggleDefault", "1");
 SETTING(bool, separateKeyboardAndControllers, "SeparateKeyboardAndControllers", "0");
 SETTING(bool, autoUpdateControllers, "AutomaticallyUpdateControllers", "1");

@@ -433,6 +433,12 @@ ControllerOverrideManager::ControllerOverrideManager()
 
 void ControllerOverrideManager::SetOverrideEnabled(bool enabled)
 {
+        if (!Settings::settingsIni.enableInDevelopmentFeatures)
+        {
+                m_overrideEnabled = false;
+                return;
+        }
+
         m_overrideEnabled = enabled;
 }
 
