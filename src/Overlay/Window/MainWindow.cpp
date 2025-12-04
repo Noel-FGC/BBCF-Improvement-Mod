@@ -446,33 +446,36 @@ void MainWindow::DrawControllerSettingSection() const {
                 return;
         auto& controllerManager = ControllerOverrideManager::GetInstance();
         controllerManager.TickAutoRefresh();
-        const bool steamInputLikely = controllerManager.IsSteamInputLikelyActive();
         const bool inDevelopmentFeaturesEnabled = Settings::settingsIni.enableInDevelopmentFeatures;
+        const bool steamInputLikely = inDevelopmentFeaturesEnabled ? controllerManager.IsSteamInputLikelyActive() : false;
 
-        static bool loggedSteamInputState = false;
-        static bool lastSteamInputState = false;
-        if (!loggedSteamInputState || lastSteamInputState != steamInputLikely)
+        if (inDevelopmentFeaturesEnabled)
         {
-                LOG(1, "MainWindow::DrawControllerSettingSection - steamInputLikely=%d\n", steamInputLikely ? 1 : 0);
-                loggedSteamInputState = true;
-                lastSteamInputState = steamInputLikely;
-        }
+                static bool loggedSteamInputState = false;
+                static bool lastSteamInputState = false;
+                if (!loggedSteamInputState || lastSteamInputState != steamInputLikely)
+                {
+                        LOG(1, "MainWindow::DrawControllerSettingSection - steamInputLikely=%d\n", steamInputLikely ? 1 : 0);
+                        loggedSteamInputState = true;
+                        lastSteamInputState = steamInputLikely;
+                }
 
-        if (steamInputLikely)
-        {
-                ImGui::HorizontalSpacing();
-                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
-                        "Steam Input appears to be active.\n"
-                        "This will disable some of this section's features.");
-				ImGui::SameLine();
-				ImGui::ShowHelpMarker(
-                                        "The internal behavior of Steam Input hides some controllers from the game's process, thus making some controller related features impossible/work in unintended ways.\n"
-                                        "\n"
-                                        "The disabled features include:\n"
-                                        "- Local Controller Override\n"
-                                        "- Opening Joy.cpl"
-                                );
-                ImGui::VerticalSpacing(5);
+                if (steamInputLikely)
+                {
+                        ImGui::HorizontalSpacing();
+                        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.25f, 1.0f),
+                                "Steam Input appears to be active.\n"
+                                "This will disable some of this section's features.");
+                        ImGui::SameLine();
+                        ImGui::ShowHelpMarker(
+                                "The internal behavior of Steam Input hides some controllers from the game's process, thus making some controller related features impossible/work in unintended ways.\n"
+                                "\n"
+                                "The disabled features include:\n"
+                                "- Local Controller Override\n"
+                                "- Opening Joy.cpl"
+                        );
+                        ImGui::VerticalSpacing(5);
+                }
         }
 
         ImGui::HorizontalSpacing();
@@ -604,21 +607,25 @@ void MainWindow::DrawControllerSettingSection() const {
         }
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Reload the controller list and reinitialize input slots to match connected devices.");
-        ImGui::SameLine();
-        if (steamInputLikely)
+
+        if (inDevelopmentFeaturesEnabled)
         {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
-        if (ImGui::Button("Open Joy.cpl"))
-        {
-                LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
-                controllerManager.OpenControllerControlPanel();
-        }
-        if (steamInputLikely)
-        {
-                ImGui::PopStyleVar();
-                ImGui::PopItemFlag();
+                ImGui::SameLine();
+                if (steamInputLikely)
+                {
+                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                }
+                if (ImGui::Button("Open Joy.cpl"))
+                {
+                        LOG(1, "MainWindow::DrawControllers - Joy.cpl clicked\n");
+                        controllerManager.OpenControllerControlPanel();
+                }
+                if (steamInputLikely)
+                {
+                        ImGui::PopStyleVar();
+                        ImGui::PopItemFlag();
+                }
         }
 
         ImGui::VerticalSpacing(5);
@@ -634,9 +641,12 @@ void MainWindow::DrawControllerSettingSection() const {
         ImGui::SameLine();
         ImGui::ShowHelpMarker("Automatically refresh controller slots when devices change. The internal call to refresh controllers may freeze the game for a few moments, so only enable this if you are okay with short pauses.");
 
-        ImGui::VerticalSpacing(3);
-        ImGui::HorizontalSpacing();
-        ImGui::TextDisabled("STEAM INPUT: %s", steamInputLikely ? "ON" : "OFF");
+        if (inDevelopmentFeaturesEnabled)
+        {
+                ImGui::VerticalSpacing(3);
+                ImGui::HorizontalSpacing();
+                ImGui::TextDisabled("STEAM INPUT: %s", steamInputLikely ? "ON" : "OFF");
+        }
 }
 void MainWindow::DrawLinkButtons() const
 {
