@@ -236,13 +236,13 @@ void WindowManager::Render()
 	ImGui_ImplDX9_NewFrame();
 
 	ImGui::GetIO().MouseDrawCursor = false;
-	for (auto p : m_windowContainer->GetWindows()) {
-		if (p.first == WindowType_HitboxOverlay) continue; // ignore windows that don't need a mouse
-		if (p.second->IsOpen()) {
-			ImGui::GetIO().MouseDrawCursor = true;
-			break;
-		}
-	}
+    for (auto p : m_windowContainer->GetWindows()) {
+        if (p.first == WindowType_HitboxOverlay) continue; // ignore windows that don't need a mouse
+        if (p.second->IsOpen() && Settings::settingsIni.imguimousecursor) {
+            ImGui::GetIO().MouseDrawCursor = true;
+            break;
+        }
+    }
 
 
 	if (Settings::settingsIni.viewport == 2)
