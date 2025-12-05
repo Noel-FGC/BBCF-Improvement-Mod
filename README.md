@@ -74,6 +74,7 @@ frameHistory is a frame meter with two rows for each character. For each non-idl
 * TheDukeOfErl
 * libreofficecalc
 * crimsonfail
+* gauntlet36
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
