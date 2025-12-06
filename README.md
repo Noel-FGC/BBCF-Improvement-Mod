@@ -16,6 +16,7 @@ The goal is to extend the game with community-created content and provide additi
 - Adds gap actions through training dummy slots
 - Adds local replay file loading
 - Adds a rollback delay slider 
+- Support for (automatically) refreshing connected controllers after game startup
 - More experimental features
 
 
@@ -75,6 +76,7 @@ frameHistory is a frame meter with two rows for each character. For each non-idl
 * libreofficecalc
 * crimsonfail
 * gauntlet36
+* HaiKamDesu
 * Everybody in the BlazBlue PC community that has given support or feedback of any kind!
 
 ## Extra thanks to
