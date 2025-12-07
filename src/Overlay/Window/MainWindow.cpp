@@ -481,16 +481,30 @@ void MainWindow::DrawControllerSettingSection() const {
                         ImGui::VerticalSpacing(5);
                 }
         }
+        if (Settings::settingsIni.EnableWineBreakingFeatures != 1)
+        {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
 
         ImGui::HorizontalSpacing();
         bool controller_position_swapped = controllerManager.IsKeyboardControllerSeparated();
         if (ImGui::Checkbox("Separate Keyboard and Controllers", &controller_position_swapped)) {
-                controllerManager.SetKeyboardControllerSeparated(controller_position_swapped);
-                Settings::settingsIni.separateKeyboardAndControllers = controller_position_swapped;
-                Settings::changeSetting("SeparateKeyboardAndControllers", controller_position_swapped ? "1" : "0");
+            controllerManager.SetKeyboardControllerSeparated(controller_position_swapped);
+            Settings::settingsIni.separateKeyboardAndControllers = controller_position_swapped;
+            Settings::changeSetting("SeparateKeyboardAndControllers", controller_position_swapped ? "1" : "0");
         }
+
         ImGui::SameLine();
-        ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.");
+        if (Settings::settingsIni.EnableWineBreakingFeatures != 1)
+        {
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+            ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.\n\nThis feature will crash your game if you are using wine or proton, you currently have the 'EnableWineBreakingFeatures' option set to 0 in your settings.ini file, so it has been automatically disabled");
+        }
+        else
+            ImGui::ShowHelpMarker("Separates keyboard input from controller slots so they can map to different players.");
+
 
         ImGui::VerticalSpacing(5);
 

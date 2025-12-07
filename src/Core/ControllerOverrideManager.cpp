@@ -463,6 +463,8 @@ void ControllerOverrideManager::SetKeyboardControllerSeparated(bool enabled)
         {
                 return;
         }
+        if (Settings::settingsIni.EnableWineBreakingFeatures != 1)
+            return;
 
         uintptr_t base = reinterpret_cast<uintptr_t>(GetBbcfBaseAdress());
         char*** battle_key_controller = reinterpret_cast<char***>(base + 0x8929c8);
@@ -1047,6 +1049,13 @@ bool ControllerOverrideManager::TryEnumerateDevicesA(std::vector<ControllerDevic
 
 void ControllerOverrideManager::TryEnumerateWinmmDevices(std::vector<ControllerDeviceInfo>& outDevices) const
 {
+        if (Settings::settingsIni.EnableWineBreakingFeatures != 1)
+        {
+            LOG(1, "Skipping TryEnumerateWinmmDevices as "
+                    "EnableWineBreakingFeatures is not enabled\n");
+            return;
+        }
+
         UINT deviceCount = joyGetNumDevs();
         LOG(1, "ControllerOverrideManager::TryEnumerateWinmmDevices - begin count=%u\n", deviceCount);
 

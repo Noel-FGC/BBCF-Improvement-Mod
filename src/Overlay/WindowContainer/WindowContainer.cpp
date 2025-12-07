@@ -16,6 +16,7 @@
 #include "Overlay/Window/FrameHistory/FrameHistoryWindow.h"
 #include "Overlay/Window/FrameAdvantage/FrameAdvantageWindow.h"
 #include "Overlay/Window/ReplayRewindWindow.h"
+#include "Overlay/Window/WinePopupWindow.h"
 
 #include "Core/info.h"
 #include "Core/logger.h"
@@ -75,6 +76,9 @@ WindowContainer::WindowContainer()
 	
 	AddWindow(WindowType_ReplayRewind,
 		new ReplayRewindWindow("Replay Rewind", true, *this, ImGuiWindowFlags_NoTitleBar));
+
+    AddWindow(WindowType_WinePopup,
+        new WinePopupWindow("Wine Popup", true, *this, ImGuiWindowFlags_NoTitleBar));
 }
 
 

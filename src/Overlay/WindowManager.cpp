@@ -10,6 +10,7 @@
 #include "Core/logger.h"
 #include "Core/Settings.h"
 #include "Core/utils.h"
+#include "Core/WineCheck.h"
 #include "Web/update_check.h"
 
 #include <imgui.h>
@@ -152,8 +153,14 @@ bool WindowManager::Initialize(void *hwnd, IDirect3DDevice9 *device)
 	{
 		m_windowContainer->GetWindow(WindowType_ReplayDBPopup)->Open();
 	}
-
-
+    LOG(1, "EnableWineBreakingFeatures: %d\n", Settings::settingsIni.EnableWineBreakingFeatures);
+    if (Settings::settingsIni.EnableWineBreakingFeatures == -1)
+    {
+        if (WineCheck())
+            m_windowContainer->GetWindow(WindowType_WinePopup)->Open();
+        else
+            Settings::changeSetting("EnableWineBreakingFeatures", "1");
+    }
 
 
 	std::string notificationText = MOD_WINDOW_TITLE;
