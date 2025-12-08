@@ -48,7 +48,7 @@ void WinePopupWindow::Draw()
             " so by clicking the 'Enable' button below. If you do enable this while   \n"
             " using wine or proton there is a very likely chance that your game will  \n"
             " no longer open while using BBCFIM, you can fix this easily by manually  \n"
-            " changing the setting called 'EnableWineBreakingFeatures' to 1 in the    \n"
+            " changing the setting called 'EnableWineBreakingFeatures' to 0 in the    \n"
             " settings.ini file located in your game installation directory.";
         ImGui::TextUnformatted(txt);
         ImGui::Separator();
